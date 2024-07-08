@@ -1,0 +1,69 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum CountType {
+  PIECE
+  KILOGRAM
+  BUNCH
+}
+
+model SaleResource {
+  id          Int       @id @default(autoincrement())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  name        String
+  pricePerOne Float
+  countType   CountType
+
+  itemReferences SaleItem[]
+}
+
+model SaleItem {
+  id            Int      @id @default(autoincrement())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  obtainedCount Float
+  returnedCount Float
+
+  daySaleRecord DaySaleRecord @relation(fields: [daySaleRecordId], references: [id])
+  resource      SaleResource  @relation(fields: [resourceId], references: [id])
+
+  daySaleRecordId Int
+  resourceId      Int
+}
+
+model SalePerson {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  name      String
+  phone     String?
+
+  daySaleRecords DaySaleRecord[]
+}
+
+model DaySaleRecord {
+  id         Int      @id @default(autoincrement())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  date       DateTime
+  cardIncome Float
+  cashIncome Float
+
+  seller SalePerson @relation(fields: [sellerId], references: [id])
+  items  SaleItem[]
+
+  sellerId Int
+}
