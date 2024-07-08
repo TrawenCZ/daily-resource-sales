@@ -1,7 +1,10 @@
 "use client";
+import { DayClosingInitData } from "@/app/(root)/new-daily/page";
+import { newClosingSchema } from "@/utils/schemas";
 import { zodResolver } from "@hookform/resolvers/zod";
 import AddIcon from "@material-symbols/svg-400/outlined/add.svg";
 import DeleteIcon from "@material-symbols/svg-400/outlined/delete.svg";
+import SaveIcon from "@material-symbols/svg-400/outlined/save.svg";
 import { Prisma } from "@prisma/client";
 import axios from "axios";
 import { useEffect, useRef, useState } from "react";
@@ -12,27 +15,7 @@ import LoadingAnimation from "../LoadingAnimation";
 
 type CountType = Prisma.SaleResourceCreateArgs["data"]["countType"];
 
-const validationSchema = z.object({
-  items: z
-    .object({
-      itemId: z.number().min(0),
-      itemName: z.string(),
-      obtainedCount: z
-        .number({
-          invalid_type_error: "Uvedená hodnota pro 'Naskladněno' není číslo",
-        })
-        .min(0, "Uvedená hodnota pro 'Naskladněno' musí být větší než 0"),
-      returnedCount: z
-        .number({
-          invalid_type_error: "Uvedená hodnota pro 'Vráceno' není číslo",
-        })
-        .min(0, "Uvedená hodnota pro 'Vráceno' musí být větší než 0"),
-      countType: z.enum(["PIECE", "KILOGRAM", "BUNCH"]).or(z.null()),
-    })
-    .array(),
-});
-
-const resourceRecords = validationSchema.shape.items.element
+const resourceRecords = newClosingSchema.shape.items.element
   .omit({ obtainedCount: true, returnedCount: true })
   .array();
 
@@ -49,19 +32,62 @@ const countTypeResolver = (type: CountType | null) => {
   }
 };
 
-export default function NewDailyClosing() {
-  const [availableResources, setAvailableResources] =
-    useState<ResourceRecords | null>(null);
-  const modalRef = useRef<HTMLDialogElement | null>(null);
+export default function NewDailyClosing({
+  initData,
+}: {
+  initData: {
+    day: NonNullable<DayClosingInitData["day"]>;
+    allSellers: DayClosingInitData["allSellers"];
+  };
+}) {
+  const [availableResources, setAvailableResources] = useState<
+    Omit<ResourceRecords[0], "resourceId">[] | null
+  >(null);
   const [itemIndexForModal, setItemIndexForModal] = useState<number | null>(
     null
   );
+  const [updateStatus, setUpdateStatus] = useState<
+    "inProgress" | "finished" | "failed"
+  >("finished");
+  const [prevValues, setPrevValues] = useState<z.infer<
+    typeof newClosingSchema
+  > | null>(
+    initData.day?.items
+      ? {
+          items: initData.day.items.map((item) => ({
+            ...item,
+            name: item.resource.name,
+            countType: item.resource.countType,
+            resourceId: item.resource.id,
+          })),
+        }
+      : null
+  );
+  const modalRef = useRef<HTMLDialogElement | null>(null);
 
-  const { handleSubmit, control, register, formState, setValue, watch } =
-    useForm<z.infer<typeof validationSchema>>({
-      resolver: zodResolver(validationSchema),
-      mode: "onBlur",
-    });
+  const {
+    handleSubmit,
+    control,
+    register,
+    formState,
+    setValue,
+    watch,
+    getValues,
+  } = useForm<z.infer<typeof newClosingSchema>>({
+    resolver: zodResolver(newClosingSchema),
+    mode: "onBlur",
+    defaultValues:
+      {
+        items: initData.day?.items.map((item) => ({
+          ...item,
+          name: item.resource.name,
+          countType: item.resource.countType,
+          resourceId: item.resource.id,
+        })),
+      } ?? [],
+  });
+
+  const items = watch("items");
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -71,14 +97,34 @@ export default function NewDailyClosing() {
   useEffect(() => {
     axios
       .get("/api/sale-items")
-      .then((res) => resourceRecords.parseAsync(res.data))
-      .then((resources) => setAvailableResources(resources))
+      .then((res) =>
+        resourceRecords.element
+          .omit({ resourceId: true })
+          .array()
+          .safeParseAsync(res.data)
+      )
+      .then((parseRes) => {
+        if (parseRes.success) return setAvailableResources(parseRes.data);
+        throw Error(parseRes.error.message);
+      })
       .catch((err) => console.error(err));
   }, []);
 
   useEffect(() => {
-    if (formState.isValidating || !formState.isValid) return;
-  }, [formState.isValidating, formState.isValid]);
+    const cleanedItems = { items: items.filter((i) => i.name !== "") };
+    if (
+      cleanedItems.items.length === 0 ||
+      !formState.isValid ||
+      formState.isValidating ||
+      updateStatus === "inProgress"
+    )
+      return;
+    setUpdateStatus("inProgress");
+    axios
+      .put(`/api/closing/${initData.day.id}`, cleanedItems)
+      .then(() => setUpdateStatus("finished"))
+      .catch(() => setUpdateStatus("failed"));
+  }, [items, formState.isValid]);
 
   return (
     <>
@@ -124,20 +170,20 @@ export default function NewDailyClosing() {
                   </div>
                   <ReactSelect
                     className="w-64"
-                    getOptionLabel={(d) => d.itemName}
+                    getOptionLabel={(d) => d.name}
                     placeholder="Vybrat..."
                     noOptionsMessage={() => "Žádné možnosti k výběru"}
                     isSearchable={true}
                     options={availableResources}
                     value={{
-                      itemId: watch(`items.${index}.itemId`),
-                      itemName: watch(`items.${index}.itemName`),
+                      id: watch(`items.${index}.id`),
+                      name: watch(`items.${index}.name`),
                       countType: watch(`items.${index}.countType`),
                     }}
                     onChange={(val) => {
                       if (val) {
-                        setValue(`items.${index}.itemId`, val.itemId);
-                        setValue(`items.${index}.itemName`, val.itemName);
+                        setValue(`items.${index}.id`, val.id);
+                        setValue(`items.${index}.name`, val.name);
                         setValue(`items.${index}.countType`, val.countType);
                       }
                     }}
@@ -211,19 +257,35 @@ export default function NewDailyClosing() {
               className="btn btn-success w-72"
               onClick={() =>
                 append({
-                  itemId: 0,
-                  itemName: "",
+                  id: 0,
+                  name: "",
                   obtainedCount: 0,
                   returnedCount: 0,
                   countType: null,
+                  resourceId: 0,
                 })
               }
             >
               <AddIcon style={{ width: "2rem", height: "2rem" }} />
               Přidat položku
             </button>
+            <div className="flex items-center border  rounded-md border-success p-2 text-success">
+              {updateStatus === "finished" ? (
+                <>
+                  <SaveIcon />
+                  <p>Průběžně uloženo</p>
+                </>
+              ) : updateStatus === "inProgress" ? (
+                <>
+                  <span className="loading loading-bars loading-md" />
+                  Ukládám
+                </>
+              ) : (
+                <>Nastala chyba při ukládání</>
+              )}
+            </div>
             <button type="submit" className="btn btn-outline">
-              Uložit
+              Uzavřít den
             </button>
           </form>
         ) : (

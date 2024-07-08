@@ -1,5 +1,7 @@
 "use client";
+import NewDailyClosing from "@/components/form/NewDailyClosing";
 import LoadingAnimation from "@/components/LoadingAnimation";
+import { newDaySchema } from "@/utils/schemas";
 import { zodResolver } from "@hookform/resolvers/zod";
 import NewDayIcon from "@material-symbols/svg-400/outlined/add_box.svg";
 import { Prisma } from "@prisma/client";
@@ -63,14 +65,11 @@ const validationSchema = z.object({
     .min(1),
 });
 
-const newDaySchema = z.object({
-  seller: z.string(),
-  date: z.coerce.date(),
-});
+export type DayClosingInitData = z.infer<typeof validationSchema>;
 
 export default function NewDailyPage() {
   const [currentDayClosing, setCurrentDayClosing] = useState<
-    z.infer<typeof validationSchema> | "loading" | null
+    DayClosingInitData | "loading" | null
   >(null);
 
   const { register, handleSubmit, getValues, setValue } = useForm({
@@ -88,12 +87,30 @@ export default function NewDailyPage() {
         .get("/api/last-closing")
         .then((res) => validationSchema.safeParseAsync(res.data))
         .then((parseRes) => {
-          if (parseRes.success) setCurrentDayClosing(parseRes.data);
+          if (parseRes.success) return setCurrentDayClosing(parseRes.data);
           throw Error(parseRes.error?.message);
         })
         .catch((err) => console.error(err));
     }
   });
+
+  const onSubmit = async (data: { date: string; seller: string }) => {
+    try {
+      const response = await axios
+        .post("/api/closing", data)
+        .then((res) => validationSchema.shape.day.safeParseAsync(res.data))
+        .then((parseRes) => {
+          if (parseRes.success) return parseRes.data;
+          throw Error(parseRes.error.message);
+        });
+      setCurrentDayClosing({
+        allSellers: (currentDayClosing as DayClosingInitData).allSellers,
+        day: response,
+      });
+    } catch (e) {
+      console.error("onSubmit: " + e);
+    }
+  };
 
   if (!currentDayClosing || currentDayClosing === "loading")
     return <LoadingAnimation />;
@@ -104,7 +121,7 @@ export default function NewDailyPage() {
         <div className="w-max border-2 border-info-content rounded-md flex flex-col items-center mt-8 p-4 gap-y-4">
           <h2 className="font-bold text-4xl">Žádný aktivní záznam</h2>
           <form
-            onSubmit={handleSubmit(() => {})}
+            onSubmit={handleSubmit(onSubmit)}
             className="flex flex-col items-center gap-4"
           >
             <label className="form-control">
@@ -140,4 +157,15 @@ export default function NewDailyPage() {
       </div>
     );
   }
+
+  return (
+    <NewDailyClosing
+      initData={
+        currentDayClosing as {
+          day: NonNullable<DayClosingInitData["day"]>;
+          allSellers: DayClosingInitData["allSellers"];
+        }
+      }
+    />
+  );
 }
