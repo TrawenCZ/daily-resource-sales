@@ -48,7 +48,7 @@ model SalePerson {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  name      String
+  name      String   @unique
   phone     String?
 
   daySaleRecords DaySaleRecord[]
@@ -59,8 +59,9 @@ model DaySaleRecord {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   date       DateTime
-  cardIncome Float
-  cashIncome Float
+  cardIncome Float    @default(0)
+  cashIncome Float    @default(0)
+  archived   Boolean  @default(false)
 
   seller SalePerson @relation(fields: [sellerId], references: [id])
   items  SaleItem[]

@@ -10,11 +10,11 @@ export default function Navbar() {
           Uzávěrky<div className="text-emerald-700">Online</div>
         </Link>
         <div className="flex gap-4 py-2 [&>a]:btn [&>a]:btn-outline [&_svg]:h-8 [&_svg]:w-8">
-          <Link href="/" className="btn-success">
+          <Link href="/new-daily" className="btn-success">
             <AddIcon />
             Nová denní uzávěrka
           </Link>
-          <Link href="/">
+          <Link href="/history">
             <HistoryIcon />
             Historie uzávěrek
           </Link>
