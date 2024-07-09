@@ -4,7 +4,9 @@ import { newClosingSchema } from "@/utils/schemas";
 import { zodResolver } from "@hookform/resolvers/zod";
 import AddIcon from "@material-symbols/svg-400/outlined/add.svg";
 import CheckIcon from "@material-symbols/svg-400/outlined/check_circle.svg";
+import CreditCardIcon from "@material-symbols/svg-400/outlined/credit_card.svg";
 import DeleteIcon from "@material-symbols/svg-400/outlined/delete.svg";
+import CoinIcon from "@material-symbols/svg-400/outlined/paid.svg";
 import PaymentIcon from "@material-symbols/svg-400/outlined/payments.svg";
 import SaveIcon from "@material-symbols/svg-400/outlined/save.svg";
 import CartIcon from "@material-symbols/svg-400/outlined/shopping_cart.svg";
@@ -20,10 +22,7 @@ import LoadingAnimation from "../LoadingAnimation";
 
 type CountType = Prisma.SaleResourceCreateArgs["data"]["countType"];
 
-const resourceRecords =
-  newClosingSchema.shape.items.element.shape.resource.merge(
-    z.object({ pricePerOne: z.number() })
-  );
+const resourceRecords = newClosingSchema.shape.items.element.shape.resource;
 
 type ResourceRecords = z.infer<typeof resourceRecords>;
 
@@ -55,6 +54,8 @@ export default function NewDailyClosing({
   const [saveStatus, setSaveStatus] = useState<
     "saved" | "unsaved" | "saving" | "freshlySaved"
   >("saved");
+
+  const [currPrice, setCurrPrice] = useState<number>(0);
 
   const removeItemModalRef = useRef<HTMLDialogElement | null>(null);
   const saveDayRef = useRef<HTMLDialogElement | null>(null);
@@ -91,11 +92,19 @@ export default function NewDailyClosing({
   });
 
   const formSubscription = useWatch({ control: control });
+  const itemsSubscription = useWatch({ control: control, name: "items" });
 
   useEffect(() => {
     if (saveStatus === "saving") {
+      const cleanedData = {
+        ...formSubscription,
+        items: formSubscription.items?.filter(
+          (i) => i.resource && i.resource.name !== ""
+        ),
+      };
+
       axios
-        .put(`/api/closing/${initData.day.id}`, formSubscription)
+        .put(`/api/closing/${initData.day.id}`, cleanedData)
         .then((res) => {
           if (saveStatus === "saving") {
             (res.data as { id: number }[]).forEach((elem, index) => {
@@ -146,13 +155,18 @@ export default function NewDailyClosing({
     }
   };
 
-  const currPrice = getValues("items").reduce(
-    (acc, val) =>
-      acc + (val.obtainedCount - val.returnedCount) * val.resource?.pricePerOne,
-    0
-  );
+  useEffect(() => {
+    setCurrPrice(
+      itemsSubscription.reduce(
+        (acc, val) =>
+          acc +
+          (val.obtainedCount - val.returnedCount) * val.resource.pricePerOne,
+        0
+      )
+    );
+  }, [itemsSubscription]);
 
-  const currIncome = getValues("cardIncome") + getValues("cashIncome");
+  const currIncome = watch("cardIncome") + watch("cashIncome");
 
   return (
     <>
@@ -323,10 +337,12 @@ export default function NewDailyClosing({
                     noOptionsMessage={() => "Žádné možnosti k výběru"}
                     isSearchable={true}
                     options={availableResources}
+                    isMulti={false}
                     value={{
                       id: watch(`items.${index}.resource.id`),
                       name: watch(`items.${index}.resource.name`),
                       countType: watch(`items.${index}.resource.countType`),
+                      pricePerOne: watch(`items.${index}.resource.pricePerOne`),
                     }}
                     onChange={(val) => {
                       if (val) {
@@ -336,6 +352,13 @@ export default function NewDailyClosing({
                         setValue(`items.${index}.resource.name`, val.name, {
                           shouldTouch: true,
                         });
+                        setValue(
+                          `items.${index}.resource.pricePerOne`,
+                          val.pricePerOne,
+                          {
+                            shouldTouch: true,
+                          }
+                        );
                         setValue(
                           `items.${index}.resource.countType`,
                           val.countType,
@@ -361,7 +384,6 @@ export default function NewDailyClosing({
                   <input
                     type="number"
                     min={0}
-                    className=""
                     {...register(`items.${index}.obtainedCount`, {
                       valueAsNumber: true,
                     })}
@@ -391,6 +413,7 @@ export default function NewDailyClosing({
                 <div className="divider divider-horizontal mx-0 ml-3" />
 
                 <button
+                  type="button"
                   onClick={() => {
                     setItemIndexForModal(index);
                     removeItemModalRef.current?.showModal();
@@ -416,26 +439,20 @@ export default function NewDailyClosing({
               </p>
             )}
             <button
+              type="button"
               className="btn btn-success w-72"
               onClick={() =>
-                append(
-                  {
-                    id: null,
-                    obtainedCount: 0,
-                    returnedCount: 0,
-                    resource: {
-                      id: 0,
-                      name: "",
-                      pricePerOne: 0,
-                      countType: null,
-                    },
+                append({
+                  id: null,
+                  obtainedCount: 0,
+                  returnedCount: 0,
+                  resource: {
+                    id: 0,
+                    name: "",
+                    pricePerOne: 0,
+                    countType: null,
                   },
-                  {
-                    focusName: `items.${
-                      formSubscription.items?.length ?? 0
-                    }.resource`,
-                  }
-                )
+                })
               }
             >
               <AddIcon style={{ width: "2rem", height: "2rem" }} />
@@ -445,7 +462,12 @@ export default function NewDailyClosing({
             <div className="flex gap-4">
               <label className="form-control w-full max-w-xs">
                 <div className="label">
-                  <span className="label-text">Příjem kartou</span>
+                  <span className="label-text flex">Příjem kartou</span>
+                  <span className="label-text-alt">
+                    <CreditCardIcon
+                      style={{ height: "1.5rem", width: "1.5rem" }}
+                    />
+                  </span>
                 </div>
                 <input
                   type="number"
@@ -457,6 +479,9 @@ export default function NewDailyClosing({
               <label className="form-control w-full max-w-xs">
                 <div className="label">
                   <span className="label-text">Příjem v hotovosti</span>
+                  <span className="label-text-alt">
+                    <CoinIcon style={{ height: "1.5rem", width: "1.5rem" }} />
+                  </span>
                 </div>
                 <input
                   type="number"

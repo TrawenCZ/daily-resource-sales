@@ -14,7 +14,7 @@ export default function Navbar() {
             <AddIcon />
             Nová denní uzávěrka
           </Link>
-          <Link href="/history">
+          <Link href="/history?p=0">
             <HistoryIcon />
             Historie uzávěrek
           </Link>

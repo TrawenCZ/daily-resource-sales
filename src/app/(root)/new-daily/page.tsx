@@ -111,7 +111,11 @@ export default function NewDailyPage() {
   };
 
   if (!currentDayClosing || currentDayClosing === "loading")
-    return <LoadingAnimation />;
+    return (
+      <div className="flex justify-center w-full">
+        <LoadingAnimation />
+      </div>
+    );
 
   if (!currentDayClosing.day || currentDayClosing.day.archived) {
     return (

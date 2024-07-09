@@ -3,8 +3,9 @@ import { NextResponse } from "next/server";
 
 export const GET = async () => {
   const lastSaleRecord = await prisma.daySaleRecord.findMany({
+    where: { archived: false },
     orderBy: {
-      date: "asc",
+      date: "desc",
     },
     take: 1,
     include: {

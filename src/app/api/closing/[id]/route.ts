@@ -49,7 +49,7 @@ export const PUT = async (
     return new NextResponse("Den, na který požadavek odkazuje, neexistuje", {
       status: 404,
     });
-  // console.log("DATA:" + parseRes.data);
+
   const dbRes = await prisma.daySaleRecord.update({
     where: { id: +params.id },
     data: {
