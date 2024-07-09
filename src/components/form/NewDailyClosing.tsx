@@ -117,15 +117,12 @@ export default function NewDailyClosing({
         throw Error(parseRes.error.message);
       })
       .catch((err) => console.error(err));
-  }, []);
+  }, [getValues, setValue]);
 
   useEffect(() => {
     setSaveStatus((st) => (st === "freshlySaved" ? "saved" : "unsaved"));
   }, [formSubscription]);
 
-  console.log(
-    formState.touchedFields.items + "AND IS VALID" + formState.isValid
-  );
   return (
     <>
       <dialog ref={modalRef} className="modal">
