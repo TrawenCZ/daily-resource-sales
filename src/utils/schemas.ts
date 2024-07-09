@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export const countTypeZodEnum = z.enum(["PIECE", "KILOGRAM", "BUNCH"]);
+
 export const newDaySchema = z.object({
   seller: z.string().min(1),
   date: z.coerce.date(),
@@ -8,8 +10,7 @@ export const newDaySchema = z.object({
 export const newClosingSchema = z.object({
   items: z
     .object({
-      id: z.number().min(0),
-      name: z.string(),
+      id: z.number().or(z.null()),
       obtainedCount: z
         .number({
           invalid_type_error: "Uvedená hodnota pro 'Naskladněno' není číslo",
@@ -20,8 +21,11 @@ export const newClosingSchema = z.object({
           invalid_type_error: "Uvedená hodnota pro 'Vráceno' není číslo",
         })
         .min(0, "Uvedená hodnota pro 'Vráceno' musí být větší než 0"),
-      countType: z.enum(["PIECE", "KILOGRAM", "BUNCH"]).or(z.null()),
-      resourceId: z.number(),
+      resource: z.object({
+        id: z.number(),
+        name: z.string(),
+        countType: countTypeZodEnum.or(z.null()),
+      }),
     })
     .array(),
 });

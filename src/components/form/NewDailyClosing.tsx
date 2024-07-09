@@ -3,21 +3,20 @@ import { DayClosingInitData } from "@/app/(root)/new-daily/page";
 import { newClosingSchema } from "@/utils/schemas";
 import { zodResolver } from "@hookform/resolvers/zod";
 import AddIcon from "@material-symbols/svg-400/outlined/add.svg";
+import CheckIcon from "@material-symbols/svg-400/outlined/check_circle.svg";
 import DeleteIcon from "@material-symbols/svg-400/outlined/delete.svg";
 import SaveIcon from "@material-symbols/svg-400/outlined/save.svg";
 import { Prisma } from "@prisma/client";
 import axios from "axios";
 import { useEffect, useRef, useState } from "react";
-import { useFieldArray, useForm } from "react-hook-form";
+import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import ReactSelect from "react-select";
 import { z } from "zod";
 import LoadingAnimation from "../LoadingAnimation";
 
 type CountType = Prisma.SaleResourceCreateArgs["data"]["countType"];
 
-const resourceRecords = newClosingSchema.shape.items.element
-  .omit({ obtainedCount: true, returnedCount: true })
-  .array();
+const resourceRecords = newClosingSchema.shape.items.element.shape.resource;
 
 type ResourceRecords = z.infer<typeof resourceRecords>;
 
@@ -41,28 +40,15 @@ export default function NewDailyClosing({
   };
 }) {
   const [availableResources, setAvailableResources] = useState<
-    Omit<ResourceRecords[0], "resourceId">[] | null
+    ResourceRecords[] | null
   >(null);
   const [itemIndexForModal, setItemIndexForModal] = useState<number | null>(
     null
   );
-  const [updateStatus, setUpdateStatus] = useState<
-    "inProgress" | "finished" | "failed"
-  >("finished");
-  const [prevValues, setPrevValues] = useState<z.infer<
-    typeof newClosingSchema
-  > | null>(
-    initData.day?.items
-      ? {
-          items: initData.day.items.map((item) => ({
-            ...item,
-            name: item.resource.name,
-            countType: item.resource.countType,
-            resourceId: item.resource.id,
-          })),
-        }
-      : null
-  );
+  const [saveStatus, setSaveStatus] = useState<
+    "saved" | "unsaved" | "saving" | "freshlySaved"
+  >("saved");
+
   const modalRef = useRef<HTMLDialogElement | null>(null);
 
   const {
@@ -76,33 +62,56 @@ export default function NewDailyClosing({
   } = useForm<z.infer<typeof newClosingSchema>>({
     resolver: zodResolver(newClosingSchema),
     mode: "onBlur",
-    defaultValues:
-      {
-        items: initData.day?.items.map((item) => ({
-          ...item,
-          name: item.resource.name,
-          countType: item.resource.countType,
-          resourceId: item.resource.id,
-        })),
-      } ?? [],
+    defaultValues: {
+      items: initData.day.items.map((item) => ({
+        ...item,
+        name: item.resource.name,
+        countType: item.resource.countType,
+        resourceId: item.resource.id,
+      })),
+    },
   });
-
-  const items = watch("items");
 
   const { fields, append, remove } = useFieldArray({
     control,
     name: "items",
   });
 
+  const formSubscription = useWatch({ control: control });
+
   useEffect(() => {
+    if (saveStatus === "saving") {
+      axios
+        .put(`/api/closing/${initData.day.id}`, formSubscription)
+        .then((res) => {
+          if (saveStatus === "saving") {
+            (res.data as { id: number }[]).forEach((elem, index) => {
+              if (formSubscription.items)
+                setValue(`items.${index}.id`, elem.id);
+            });
+            setSaveStatus("freshlySaved");
+          }
+        })
+        .catch((e) => {
+          console.error(e);
+          setSaveStatus("unsaved");
+        });
+    }
+  }, [formSubscription, initData.day.id, saveStatus, setValue]);
+
+  useEffect(() => {
+    getValues("items").forEach((item, index) => {
+      setValue(`items.${index}.resource`, item.resource, { shouldTouch: true });
+      setValue(`items.${index}.obtainedCount`, item.obtainedCount, {
+        shouldTouch: true,
+      });
+      setValue(`items.${index}.returnedCount`, item.returnedCount, {
+        shouldTouch: true,
+      });
+    });
     axios
       .get("/api/sale-items")
-      .then((res) =>
-        resourceRecords.element
-          .omit({ resourceId: true })
-          .array()
-          .safeParseAsync(res.data)
-      )
+      .then((res) => resourceRecords.array().safeParseAsync(res.data))
       .then((parseRes) => {
         if (parseRes.success) return setAvailableResources(parseRes.data);
         throw Error(parseRes.error.message);
@@ -111,21 +120,12 @@ export default function NewDailyClosing({
   }, []);
 
   useEffect(() => {
-    const cleanedItems = { items: items.filter((i) => i.name !== "") };
-    if (
-      cleanedItems.items.length === 0 ||
-      !formState.isValid ||
-      formState.isValidating ||
-      updateStatus === "inProgress"
-    )
-      return;
-    setUpdateStatus("inProgress");
-    axios
-      .put(`/api/closing/${initData.day.id}`, cleanedItems)
-      .then(() => setUpdateStatus("finished"))
-      .catch(() => setUpdateStatus("failed"));
-  }, [items, formState.isValid]);
+    setSaveStatus((st) => (st === "freshlySaved" ? "saved" : "unsaved"));
+  }, [formSubscription]);
 
+  console.log(
+    formState.touchedFields.items + "AND IS VALID" + formState.isValid
+  );
   return (
     <>
       <dialog ref={modalRef} className="modal">
@@ -141,9 +141,14 @@ export default function NewDailyClosing({
               <button className="btn btn-outline w-20">Ne</button>
               <button
                 className="btn btn-error w-32"
-                onClick={() =>
-                  itemIndexForModal !== null && remove(itemIndexForModal)
-                }
+                onClick={() => {
+                  if (itemIndexForModal !== null) {
+                    axios.post(`/api/closing/${initData.day.id}`, {
+                      itemId: formSubscription.items?.at(itemIndexForModal)?.id,
+                    });
+                    remove(itemIndexForModal);
+                  }
+                }}
               >
                 Ano
               </button>
@@ -151,6 +156,43 @@ export default function NewDailyClosing({
           </form>
         </div>
       </dialog>
+
+      <div className="sticky top-24 w-max h-max left-16 flex gap-3 items-center border-l-2 border-gray-600 pl-2">
+        {saveStatus === "saved" ? (
+          <>
+            <div className="text-success flex gap-2 items-center">
+              <CheckIcon style={{ height: "2rem", width: "2rem" }} />
+              <p>Průběžně uloženo</p>
+            </div>
+          </>
+        ) : saveStatus === "saving" ? (
+          <>
+            <span className="loading loading-bars loading-md" />
+            Ukládám
+          </>
+        ) : (
+          <>
+            <button
+              className="btn btn-outline"
+              onClick={() => setSaveStatus("saving")}
+              disabled={
+                !formState.isValid ||
+                formSubscription.items?.some((i) => i.resource?.name === "") ||
+                formState.touchedFields.items?.some(
+                  (i) => i && Object.keys(i).length !== 3
+                )
+              }
+            >
+              <span className="absolute flex h-5 w-5 -right-1 -top-1">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-warning opacity-75" />
+                <span className="relative inline-flex rounded-full h-5 w-5 bg-yellow-500" />
+              </span>
+              <SaveIcon style={{ height: "2rem", width: "2rem" }} />
+              Průběžně uložit
+            </button>
+          </>
+        )}
+      </div>
 
       <div className="flex justify-center">
         {availableResources ? (
@@ -170,21 +212,32 @@ export default function NewDailyClosing({
                   </div>
                   <ReactSelect
                     className="w-64"
+                    name={`items.${index}.resource`}
                     getOptionLabel={(d) => d.name}
                     placeholder="Vybrat..."
                     noOptionsMessage={() => "Žádné možnosti k výběru"}
                     isSearchable={true}
                     options={availableResources}
                     value={{
-                      id: watch(`items.${index}.id`),
-                      name: watch(`items.${index}.name`),
-                      countType: watch(`items.${index}.countType`),
+                      id: watch(`items.${index}.resource.id`),
+                      name: watch(`items.${index}.resource.name`),
+                      countType: watch(`items.${index}.resource.countType`),
                     }}
                     onChange={(val) => {
                       if (val) {
-                        setValue(`items.${index}.id`, val.id);
-                        setValue(`items.${index}.name`, val.name);
-                        setValue(`items.${index}.countType`, val.countType);
+                        setValue(`items.${index}.resource.id`, val.id, {
+                          shouldTouch: true,
+                        });
+                        setValue(`items.${index}.resource.name`, val.name, {
+                          shouldTouch: true,
+                        });
+                        setValue(
+                          `items.${index}.resource.countType`,
+                          val.countType,
+                          {
+                            shouldTouch: true,
+                          }
+                        );
                       }
                     }}
                   />
@@ -194,7 +247,9 @@ export default function NewDailyClosing({
                   <div className="label">
                     <span className="label-text">
                       Naskladněno{" "}
-                      {countTypeResolver(watch(`items.${index}.countType`))}
+                      {countTypeResolver(
+                        watch(`items.${index}.resource.countType`)
+                      )}
                     </span>
                   </div>
 
@@ -212,7 +267,9 @@ export default function NewDailyClosing({
                   <div className="label">
                     <span className="label-text">
                       Vráceno{" "}
-                      {countTypeResolver(watch(`items.${index}.countType`))}
+                      {countTypeResolver(
+                        watch(`items.${index}.resource.countType`)
+                      )}
                     </span>
                   </div>
 
@@ -256,37 +313,33 @@ export default function NewDailyClosing({
             <button
               className="btn btn-success w-72"
               onClick={() =>
-                append({
-                  id: 0,
-                  name: "",
-                  obtainedCount: 0,
-                  returnedCount: 0,
-                  countType: null,
-                  resourceId: 0,
-                })
+                append(
+                  {
+                    id: null,
+                    obtainedCount: 0,
+                    returnedCount: 0,
+                    resource: {
+                      id: 0,
+                      name: "",
+                      countType: null,
+                    },
+                  },
+                  {
+                    focusName: `items.${
+                      formSubscription.items?.length ?? 0
+                    }.resource`,
+                  }
+                )
               }
             >
               <AddIcon style={{ width: "2rem", height: "2rem" }} />
               Přidat položku
             </button>
-            <div className="flex items-center border  rounded-md border-success p-2 text-success">
-              {updateStatus === "finished" ? (
-                <>
-                  <SaveIcon />
-                  <p>Průběžně uloženo</p>
-                </>
-              ) : updateStatus === "inProgress" ? (
-                <>
-                  <span className="loading loading-bars loading-md" />
-                  Ukládám
-                </>
-              ) : (
-                <>Nastala chyba při ukládání</>
-              )}
+            <div className="flex gap-6 ">
+              <button type="submit" className="btn btn-outline">
+                Uzavřít den
+              </button>
             </div>
-            <button type="submit" className="btn btn-outline">
-              Uzavřít den
-            </button>
           </form>
         ) : (
           <LoadingAnimation />

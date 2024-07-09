@@ -1,7 +1,7 @@
 "use client";
 import NewDailyClosing from "@/components/form/NewDailyClosing";
 import LoadingAnimation from "@/components/LoadingAnimation";
-import { newDaySchema } from "@/utils/schemas";
+import { countTypeZodEnum, newDaySchema } from "@/utils/schemas";
 import { zodResolver } from "@hookform/resolvers/zod";
 import NewDayIcon from "@material-symbols/svg-400/outlined/add_box.svg";
 import { Prisma } from "@prisma/client";
@@ -13,8 +13,6 @@ import { z } from "zod";
 
 type DailyClosing = Prisma.$DaySaleRecordPayload["scalars"] &
   Prisma.$DaySaleRecordPayload["objects"];
-
-export const countTypeZodEnum = z.enum(["PIECE", "KILOGRAM", "BUNCH"]);
 
 const validationSchema = z.object({
   day: z
