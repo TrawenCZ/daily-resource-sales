@@ -5,9 +5,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import AddIcon from "@material-symbols/svg-400/outlined/add.svg";
 import CheckIcon from "@material-symbols/svg-400/outlined/check_circle.svg";
 import DeleteIcon from "@material-symbols/svg-400/outlined/delete.svg";
+import PaymentIcon from "@material-symbols/svg-400/outlined/payments.svg";
 import SaveIcon from "@material-symbols/svg-400/outlined/save.svg";
+import CartIcon from "@material-symbols/svg-400/outlined/shopping_cart.svg";
+import StoreIcon from "@material-symbols/svg-400/outlined/storefront.svg";
 import { Prisma } from "@prisma/client";
 import axios from "axios";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import ReactSelect from "react-select";
@@ -16,7 +20,10 @@ import LoadingAnimation from "../LoadingAnimation";
 
 type CountType = Prisma.SaleResourceCreateArgs["data"]["countType"];
 
-const resourceRecords = newClosingSchema.shape.items.element.shape.resource;
+const resourceRecords =
+  newClosingSchema.shape.items.element.shape.resource.merge(
+    z.object({ pricePerOne: z.number() })
+  );
 
 type ResourceRecords = z.infer<typeof resourceRecords>;
 
@@ -49,7 +56,11 @@ export default function NewDailyClosing({
     "saved" | "unsaved" | "saving" | "freshlySaved"
   >("saved");
 
-  const modalRef = useRef<HTMLDialogElement | null>(null);
+  const removeItemModalRef = useRef<HTMLDialogElement | null>(null);
+  const saveDayRef = useRef<HTMLDialogElement | null>(null);
+  const submitButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  const router = useRouter();
 
   const {
     handleSubmit,
@@ -69,6 +80,8 @@ export default function NewDailyClosing({
         countType: item.resource.countType,
         resourceId: item.resource.id,
       })),
+      cardIncome: initData.day.cardIncome,
+      cashIncome: initData.day.cashIncome,
     },
   });
 
@@ -123,9 +136,27 @@ export default function NewDailyClosing({
     setSaveStatus((st) => (st === "freshlySaved" ? "saved" : "unsaved"));
   }, [formSubscription]);
 
+  const onSubmit: Parameters<typeof handleSubmit>[0] = async (data) => {
+    const finalData = { ...data, archived: true };
+    try {
+      const res = await axios.put(`/api/closing/${initData.day.id}`, finalData);
+      router.push("/?state=saved");
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const currPrice = getValues("items").reduce(
+    (acc, val) =>
+      acc + (val.obtainedCount - val.returnedCount) * val.resource?.pricePerOne,
+    0
+  );
+
+  const currIncome = getValues("cardIncome") + getValues("cashIncome");
+
   return (
     <>
-      <dialog ref={modalRef} className="modal">
+      <dialog ref={removeItemModalRef} className="modal">
         <div className="modal-box">
           <form method="dialog">
             <button className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">
@@ -154,47 +185,124 @@ export default function NewDailyClosing({
         </div>
       </dialog>
 
-      <div className="sticky top-24 w-max h-max left-16 flex gap-3 items-center border-l-2 border-gray-600 pl-2">
-        {saveStatus === "saved" ? (
-          <>
-            <div className="text-success flex gap-2 items-center">
-              <CheckIcon style={{ height: "2rem", width: "2rem" }} />
-              <p>Průběžně uloženo</p>
-            </div>
-          </>
-        ) : saveStatus === "saving" ? (
-          <>
-            <span className="loading loading-bars loading-md" />
-            Ukládám
-          </>
-        ) : (
-          <>
-            <button
-              className="btn btn-outline"
-              onClick={() => setSaveStatus("saving")}
-              disabled={
-                !formState.isValid ||
-                formSubscription.items?.some((i) => i.resource?.name === "") ||
-                formState.touchedFields.items?.some(
-                  (i) => i && Object.keys(i).length !== 3
-                )
-              }
-            >
-              <span className="absolute flex h-5 w-5 -right-1 -top-1">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-warning opacity-75" />
-                <span className="relative inline-flex rounded-full h-5 w-5 bg-yellow-500" />
-              </span>
-              <SaveIcon style={{ height: "2rem", width: "2rem" }} />
-              Průběžně uložit
+      <dialog ref={saveDayRef} className="modal">
+        <div className="modal-box">
+          <form method="dialog">
+            <button className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">
+              ✕
             </button>
-          </>
-        )}
+            <h3 className="font-bold text-lg">
+              Opravdu chcete uložit a uzavřít celý den?
+            </h3>
+            <div className="flex gap-4 mt-4 justify-end">
+              <button className="btn btn-outline w-20">Ne</button>
+              <button
+                className="btn btn-success w-32"
+                onClick={() => {
+                  if (submitButtonRef.current) {
+                    submitButtonRef.current.click();
+                  }
+                }}
+              >
+                Ano
+              </button>
+            </div>
+          </form>
+        </div>
+      </dialog>
+
+      <div className="h-0 sticky top-24">
+        <div className="relative left-8 p-6 shadow-md w-max flex flex-col items-center">
+          <div className="w-max h-max flex gap-3 items-center ">
+            {saveStatus === "saved" ? (
+              <>
+                <div className="text-success flex gap-2 items-center">
+                  <CheckIcon style={{ height: "2rem", width: "2rem" }} />
+                  <p>Průběžně uloženo</p>
+                </div>
+              </>
+            ) : saveStatus === "saving" ? (
+              <>
+                <span className="loading loading-bars loading-md" />
+                Ukládám
+              </>
+            ) : (
+              <>
+                <button
+                  className="btn btn-outline animate-[wiggle_5s_ease-in-out_infinite] --[animation-delay:2s]"
+                  onClick={() => setSaveStatus("saving")}
+                  disabled={
+                    !formState.isValid ||
+                    formSubscription.items?.some(
+                      (i) => i.resource?.name === ""
+                    ) ||
+                    formState.touchedFields.items?.some(
+                      (i) => i && Object.keys(i).length !== 3
+                    )
+                  }
+                >
+                  <span className="absolute flex h-5 w-5 -right-1 -top-1">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-warning opacity-75" />
+                    <span className="relative inline-flex rounded-full h-5 w-5 bg-yellow-500" />
+                  </span>
+                  <SaveIcon style={{ height: "2rem", width: "2rem" }} />
+                  Průběžně uložit
+                </button>
+              </>
+            )}
+          </div>
+          <div className="divider my-2" />
+          <div className="flex flex-col">
+            <div className="stat">
+              <div className="stat-figure text-primary">
+                <CartIcon />
+              </div>
+              <div className="stat-title">Cena celkem</div>
+              <div className="stat-value text-primary">{currPrice} CZK</div>
+              {/* <div className="stat-desc">21% more than last month</div> */}
+            </div>
+
+            <div className="stat">
+              <div className="stat-figure text-secondary">
+                <PaymentIcon />
+              </div>
+              <div className="stat-title">Příjem</div>
+              <div className="stat-value text-secondary">{currIncome} CZK</div>
+              {/* <div className="stat-desc">21% more than last month</div> */}
+            </div>
+
+            <div className="stat">
+              <div className="stat-figure text-accent">
+                <StoreIcon />
+              </div>
+              <div className="stat-title">Bilance</div>
+              <div className="stat-value text-accent">
+                {getValues("cardIncome") + getValues("cashIncome") - currPrice}{" "}
+                CZK
+              </div>
+              {/* <div className="stat-desc">21% more than last month</div> */}
+            </div>
+          </div>
+          <div className="divider my-2" />
+          <div className="flex flex-col items-center rounded-lg">
+            <p className="font-semibold opacity-70">Zodpovědná osoba</p>
+            <p className="font-bold text-2xl mt-1">
+              {initData.day.seller.name}
+            </p>
+          </div>
+        </div>
       </div>
 
-      <div className="flex justify-center">
+      <div className="flex flex-col items-center justify-center mb-12 mt-8">
+        <h1 className="font-bold text-3xl shadow-md p-6 rounded-lg">
+          Uzávěrka pro den{" "}
+          <span className="text-green-700">
+            {initData.day.date.toLocaleDateString()}
+          </span>
+        </h1>
         {availableResources ? (
           <form
-            onSubmit={handleSubmit(() => {})}
+            onSubmit={handleSubmit(onSubmit)}
             className="container flex flex-col mt-12 gap-y-6 items-center"
           >
             {fields.map((item, index) => (
@@ -285,7 +393,7 @@ export default function NewDailyClosing({
                 <button
                   onClick={() => {
                     setItemIndexForModal(index);
-                    modalRef.current?.showModal();
+                    removeItemModalRef.current?.showModal();
                   }}
                 >
                   <DeleteIcon
@@ -318,6 +426,7 @@ export default function NewDailyClosing({
                     resource: {
                       id: 0,
                       name: "",
+                      pricePerOne: 0,
                       countType: null,
                     },
                   },
@@ -332,10 +441,43 @@ export default function NewDailyClosing({
               <AddIcon style={{ width: "2rem", height: "2rem" }} />
               Přidat položku
             </button>
-            <div className="flex gap-6 ">
-              <button type="submit" className="btn btn-outline">
+            <div className="divider w-[35rem] self-center my-1" />
+            <div className="flex gap-4">
+              <label className="form-control w-full max-w-xs">
+                <div className="label">
+                  <span className="label-text">Příjem kartou</span>
+                </div>
+                <input
+                  type="number"
+                  className="input input-bordered"
+                  {...register("cardIncome", { valueAsNumber: true })}
+                />
+              </label>
+
+              <label className="form-control w-full max-w-xs">
+                <div className="label">
+                  <span className="label-text">Příjem v hotovosti</span>
+                </div>
+                <input
+                  type="number"
+                  className="input input-bordered"
+                  {...register("cashIncome", { valueAsNumber: true })}
+                />
+              </label>
+            </div>
+            <div className="flex flex-col items-center gap-6 shadow-md px-8 py-4 rounded-md">
+              <h2 className="font-semibold text-2xl">
+                Hotovo? Uložte a uzavřete celý den:
+              </h2>
+              <button
+                type="button"
+                className="btn btn-outline w-2/3"
+                disabled={formState.isSubmitting}
+                onClick={() => saveDayRef.current?.showModal()}
+              >
                 Uzavřít den
               </button>
+              <button type="submit" ref={submitButtonRef} />
             </div>
           </form>
         ) : (

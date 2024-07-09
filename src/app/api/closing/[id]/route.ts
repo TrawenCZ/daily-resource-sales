@@ -53,6 +53,9 @@ export const PUT = async (
   const dbRes = await prisma.daySaleRecord.update({
     where: { id: +params.id },
     data: {
+      cardIncome: parseRes.data.cardIncome,
+      cashIncome: parseRes.data.cashIncome,
+      archived: parseRes.data.archived ?? false,
       items: {
         update: parseRes.data.items
           .filter((i) => i.id !== null)

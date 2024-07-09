@@ -24,8 +24,12 @@ export const newClosingSchema = z.object({
       resource: z.object({
         id: z.number(),
         name: z.string(),
+        pricePerOne: z.number(),
         countType: countTypeZodEnum.or(z.null()),
       }),
     })
     .array(),
+  archived: z.boolean().optional(),
+  cashIncome: z.number().min(0),
+  cardIncome: z.number().min(0),
 });

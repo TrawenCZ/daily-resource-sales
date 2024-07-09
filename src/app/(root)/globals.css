@@ -6,6 +6,42 @@ svg {
   fill: currentColor;
 }
 
+@keyframes wiggle {
+  0% {
+    transform: skewX(9deg);
+  }
+  2% {
+    transform: skewX(-8deg);
+  }
+  4% {
+    transform: skewX(7deg);
+  }
+  6% {
+    transform: skewX(-6deg);
+  }
+  8% {
+    transform: skewX(5deg);
+  }
+  10% {
+    transform: skewX(-4deg);
+  }
+  12% {
+    transform: skewX(3deg);
+  }
+  14% {
+    transform: skewX(-2deg);
+  }
+  16% {
+    transform: skewX(1deg);
+  }
+  18% {
+    transform: skewX(0deg);
+  }
+  20% {
+    transform: skewX(0deg);
+  }
+}
+
 /* :root {
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 214, 219, 220;
