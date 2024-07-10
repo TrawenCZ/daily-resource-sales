@@ -13,6 +13,7 @@
     "@material-symbols/svg-400": "^0.21.0",
     "@prisma/client": "^5.16.1",
     "axios": "^1.7.2",
+    "classnames": "^2.5.1",
     "next": "14.2.4",
     "prisma": "^5.16.1",
     "react": "^18",

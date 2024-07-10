@@ -11,25 +11,35 @@ export const newClosingSchema = z.object({
   items: z
     .object({
       id: z.number().or(z.null()),
+      pricePerOne: z
+        .number()
+        .min(0, "Uvedená hodnota pro 'Cenu' musí být alespoň 0"),
       obtainedCount: z
         .number({
           invalid_type_error: "Uvedená hodnota pro 'Naskladněno' není číslo",
         })
-        .min(0, "Uvedená hodnota pro 'Naskladněno' musí být větší než 0"),
+        .min(0, "Uvedená hodnota pro 'Naskladněno' musí být alespoň 0"),
       returnedCount: z
         .number({
           invalid_type_error: "Uvedená hodnota pro 'Vráceno' není číslo",
         })
-        .min(0, "Uvedená hodnota pro 'Vráceno' musí být větší než 0"),
+        .min(0, "Uvedená hodnota pro 'Vráceno' musí být alespoň 0"),
       resource: z.object({
         id: z.number(),
         name: z.string(),
-        pricePerOne: z.number(),
         countType: countTypeZodEnum.or(z.null()),
       }),
     })
+    .refine(
+      (data) => data.obtainedCount >= data.returnedCount,
+      "Počet naskladnění musí být větší nebo roven počtu vrácení."
+    )
     .array(),
   archived: z.boolean().optional(),
-  cashIncome: z.number().min(0),
-  cardIncome: z.number().min(0),
+  cashIncome: z
+    .number()
+    .min(0, "Uvedená hodnota pro 'Příjem v hotovosti' musí být alespoň 0"),
+  cardIncome: z
+    .number()
+    .min(0, "Uvedená hodnota pro 'Příjem kartou' musí být alespoň 0"),
 });

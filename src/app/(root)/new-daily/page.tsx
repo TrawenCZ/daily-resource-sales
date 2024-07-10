@@ -29,6 +29,7 @@ const validationSchema = z.object({
           id: z.number(),
           createdAt: z.coerce.date(),
           updatedAt: z.coerce.date(),
+          pricePerOne: z.number(),
           obtainedCount: z.number(),
           returnedCount: z.number(),
           daySaleRecordId: z.number(),
@@ -37,7 +38,6 @@ const validationSchema = z.object({
             createdAt: z.coerce.date(),
             updatedAt: z.coerce.date(),
             name: z.string(),
-            pricePerOne: z.number(),
             countType: countTypeZodEnum,
           }),
         })

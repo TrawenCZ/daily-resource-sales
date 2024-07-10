@@ -71,6 +71,7 @@ export const PUT = async (
           .filter((i) => i.id === null)
           .map((item) => ({
             resource: { connect: { id: item.resource.id } },
+            pricePerOne: item.pricePerOne,
             obtainedCount: item.obtainedCount,
             returnedCount: item.returnedCount,
           })),

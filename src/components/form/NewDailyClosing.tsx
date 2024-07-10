@@ -13,6 +13,7 @@ import CartIcon from "@material-symbols/svg-400/outlined/shopping_cart.svg";
 import StoreIcon from "@material-symbols/svg-400/outlined/storefront.svg";
 import { Prisma } from "@prisma/client";
 import axios from "axios";
+import classNames from "classnames";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
@@ -22,18 +23,19 @@ import LoadingAnimation from "../LoadingAnimation";
 
 type CountType = Prisma.SaleResourceCreateArgs["data"]["countType"];
 
-const resourceRecords = newClosingSchema.shape.items.element.shape.resource;
+const resourceRecords =
+  newClosingSchema.shape.items.element._def.schema.shape.resource;
 
 type ResourceRecords = z.infer<typeof resourceRecords>;
 
-const countTypeResolver = (type: CountType | null) => {
+const countTypeResolver = (type: CountType | null, singular?: boolean) => {
   switch (type) {
     case "BUNCH":
-      return "svazků";
+      return singular ? "svazek" : "svazků";
     case "KILOGRAM":
-      return "kilogramů";
+      return singular ? "kilogram" : "kilogramů";
     case "PIECE":
-      return "kusů";
+      return singular ? "kus" : "kusů";
   }
 };
 
@@ -71,15 +73,21 @@ export default function NewDailyClosing({
     setValue,
     watch,
     getValues,
+    trigger,
   } = useForm<z.infer<typeof newClosingSchema>>({
     resolver: zodResolver(newClosingSchema),
     mode: "onBlur",
     defaultValues: {
       items: initData.day.items.map((item) => ({
-        ...item,
-        name: item.resource.name,
-        countType: item.resource.countType,
-        resourceId: item.resource.id,
+        id: item.id,
+        pricePerOne: item.pricePerOne,
+        obtainedCount: item.obtainedCount,
+        returnedCount: item.returnedCount,
+        resource: {
+          id: item.resource.id,
+          name: item.resource.name,
+          countType: item.resource.countType,
+        },
       })),
       cardIncome: initData.day.cardIncome,
       cashIncome: initData.day.cashIncome,
@@ -130,6 +138,9 @@ export default function NewDailyClosing({
       setValue(`items.${index}.returnedCount`, item.returnedCount, {
         shouldTouch: true,
       });
+      setValue(`items.${index}.pricePerOne`, item.pricePerOne, {
+        shouldTouch: true,
+      });
     });
     axios
       .get("/api/sale-items")
@@ -159,8 +170,7 @@ export default function NewDailyClosing({
     setCurrPrice(
       itemsSubscription.reduce(
         (acc, val) =>
-          acc +
-          (val.obtainedCount - val.returnedCount) * val.resource.pricePerOne,
+          acc + (val.obtainedCount - val.returnedCount) * val.pricePerOne,
         0
       )
     );
@@ -251,7 +261,7 @@ export default function NewDailyClosing({
                       (i) => i.resource?.name === ""
                     ) ||
                     formState.touchedFields.items?.some(
-                      (i) => i && Object.keys(i).length !== 3
+                      (i) => i && Object.keys(i).length !== 4
                     )
                   }
                 >
@@ -323,6 +333,7 @@ export default function NewDailyClosing({
               <section
                 key={item.id}
                 className="flex gap-4 items-center border p-2 rounded-md w-max [&_span]:font-semibold 
+                [&>label>p]:w-52
                 [&>label>input]:w-44 [&>label>input]:input [&>label>input]:input-bordered [&>label>input]:h-[2.4rem] [&>label>input]:rounded-md"
               >
                 <label>
@@ -342,7 +353,6 @@ export default function NewDailyClosing({
                       id: watch(`items.${index}.resource.id`),
                       name: watch(`items.${index}.resource.name`),
                       countType: watch(`items.${index}.resource.countType`),
-                      pricePerOne: watch(`items.${index}.resource.pricePerOne`),
                     }}
                     onChange={(val) => {
                       if (val) {
@@ -352,13 +362,6 @@ export default function NewDailyClosing({
                         setValue(`items.${index}.resource.name`, val.name, {
                           shouldTouch: true,
                         });
-                        setValue(
-                          `items.${index}.resource.pricePerOne`,
-                          val.pricePerOne,
-                          {
-                            shouldTouch: true,
-                          }
-                        );
                         setValue(
                           `items.${index}.resource.countType`,
                           val.countType,
@@ -374,6 +377,38 @@ export default function NewDailyClosing({
                 <label>
                   <div className="label">
                     <span className="label-text">
+                      Cena{" "}
+                      {watch(`items.${index}.resource.countType`)
+                        ? "za "
+                        : null}
+                      {countTypeResolver(
+                        watch(`items.${index}.resource.countType`),
+                        true
+                      )}
+                    </span>
+                  </div>
+
+                  <input
+                    type="number"
+                    min={0}
+                    className={classNames({
+                      "!input-error":
+                        formState.errors.items?.[index]?.pricePerOne,
+                    })}
+                    {...register(`items.${index}.pricePerOne`, {
+                      valueAsNumber: true,
+                    })}
+                  />
+                  {formState.errors.items?.[index]?.pricePerOne && (
+                    <p className="text-error">
+                      {formState.errors.items?.[index].pricePerOne.message}
+                    </p>
+                  )}
+                </label>
+
+                <label>
+                  <div className="label">
+                    <span className="label-text">
                       Naskladněno{" "}
                       {countTypeResolver(
                         watch(`items.${index}.resource.countType`)
@@ -383,11 +418,22 @@ export default function NewDailyClosing({
 
                   <input
                     type="number"
-                    min={0}
+                    className={classNames({
+                      "!input-error":
+                        formState.errors.items?.[index]?.obtainedCount ||
+                        formState.errors.items?.[index],
+                    })}
+                    min={watch(`items.${index}.returnedCount`) ?? 0}
                     {...register(`items.${index}.obtainedCount`, {
                       valueAsNumber: true,
+                      onBlur: () => trigger(`items.${index}`),
                     })}
                   />
+                  {formState.errors.items?.[index]?.obtainedCount && (
+                    <p className="text-error">
+                      {formState.errors.items?.[index].obtainedCount.message}
+                    </p>
+                  )}
                 </label>
 
                 <label>
@@ -402,14 +448,44 @@ export default function NewDailyClosing({
 
                   <input
                     type="number"
+                    className={classNames({
+                      "!input-error":
+                        formState.errors.items?.[index]?.returnedCount ||
+                        formState.errors.items?.[index],
+                    })}
                     min={0}
-                    className=""
+                    max={
+                      isNaN(watch(`items.${index}.obtainedCount`))
+                        ? Infinity
+                        : watch(`items.${index}.obtainedCount`)
+                    }
                     {...register(`items.${index}.returnedCount`, {
                       valueAsNumber: true,
+                      onBlur: () => trigger(`items.${index}`),
                     })}
                   />
+                  {formState.errors.items?.[index]?.obtainedCount && (
+                    <p className="text-error">
+                      {formState.errors.items?.[index].obtainedCount.message}
+                    </p>
+                  )}
                 </label>
+                {formState.errors.items?.[index] && (
+                  <p className="text-error w-28">
+                    {formState.errors.items?.[index].message}
+                  </p>
+                )}
 
+                <div className="divider divider-horizontal mx-0 ml-3" />
+                <div className="flex flex-col">
+                  <span className="!font-medium opacity-75">Cena</span>
+                  <span>
+                    {watch(`items.${index}.pricePerOne`) *
+                      (watch(`items.${index}.obtainedCount`) -
+                        watch(`items.${index}.returnedCount`))}{" "}
+                    CZK
+                  </span>
+                </div>
                 <div className="divider divider-horizontal mx-0 ml-3" />
 
                 <button
@@ -430,14 +506,6 @@ export default function NewDailyClosing({
                 </button>
               </section>
             ))}
-            {formState.errors.items && (
-              <p className="font-semibold text-xl text-error">
-                {
-                  (Object.entries(formState.errors.items[0]!)[0][1] as any)
-                    .message
-                }
-              </p>
-            )}
             <button
               type="button"
               className="btn btn-success w-72"
@@ -446,10 +514,10 @@ export default function NewDailyClosing({
                   id: null,
                   obtainedCount: 0,
                   returnedCount: 0,
+                  pricePerOne: 0,
                   resource: {
                     id: 0,
                     name: "",
-                    pricePerOne: 0,
                     countType: null,
                   },
                 })
