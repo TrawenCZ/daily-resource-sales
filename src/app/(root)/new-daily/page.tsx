@@ -14,7 +14,7 @@ import { z } from "zod";
 type DailyClosing = Prisma.$DaySaleRecordPayload["scalars"] &
   Prisma.$DaySaleRecordPayload["objects"];
 
-const validationSchema = z.object({
+export const dailyClosingSchema = z.object({
   day: z
     .object({
       id: z.number(),
@@ -63,7 +63,7 @@ const validationSchema = z.object({
     .min(1),
 });
 
-export type DayClosingInitData = z.infer<typeof validationSchema>;
+export type DayClosingInitData = z.infer<typeof dailyClosingSchema>;
 
 export default function NewDailyPage() {
   const [currentDayClosing, setCurrentDayClosing] = useState<
@@ -83,7 +83,7 @@ export default function NewDailyPage() {
     if (!currentDayClosing) {
       axios
         .get("/api/last-closing")
-        .then((res) => validationSchema.safeParseAsync(res.data))
+        .then((res) => dailyClosingSchema.safeParseAsync(res.data))
         .then((parseRes) => {
           if (parseRes.success) return setCurrentDayClosing(parseRes.data);
           throw Error(parseRes.error?.message);
@@ -96,7 +96,7 @@ export default function NewDailyPage() {
     try {
       const response = await axios
         .post("/api/closing", data)
-        .then((res) => validationSchema.shape.day.safeParseAsync(res.data))
+        .then((res) => dailyClosingSchema.shape.day.safeParseAsync(res.data))
         .then((parseRes) => {
           if (parseRes.success) return parseRes.data;
           throw Error(parseRes.error.message);

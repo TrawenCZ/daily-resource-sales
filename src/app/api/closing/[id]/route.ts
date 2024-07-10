@@ -3,6 +3,17 @@ import { newClosingSchema } from "@/utils/schemas";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
+export const GET = async (
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) =>
+  await NextResponse.json(
+    await prisma.daySaleRecord.findUnique({
+      where: { id: +params.id },
+      include: { items: { include: { resource: true } }, seller: true },
+    })
+  );
+
 export const POST = async (
   req: NextRequest,
   { params }: { params: { id: string } }

@@ -421,7 +421,7 @@ export default function NewDailyClosing({
                     className={classNames({
                       "!input-error":
                         formState.errors.items?.[index]?.obtainedCount ||
-                        formState.errors.items?.[index],
+                        formState.errors.items?.[index]?.message,
                     })}
                     min={watch(`items.${index}.returnedCount`) ?? 0}
                     {...register(`items.${index}.obtainedCount`, {
@@ -451,7 +451,7 @@ export default function NewDailyClosing({
                     className={classNames({
                       "!input-error":
                         formState.errors.items?.[index]?.returnedCount ||
-                        formState.errors.items?.[index],
+                        formState.errors.items?.[index]?.message,
                     })}
                     min={0}
                     max={
@@ -464,13 +464,13 @@ export default function NewDailyClosing({
                       onBlur: () => trigger(`items.${index}`),
                     })}
                   />
-                  {formState.errors.items?.[index]?.obtainedCount && (
+                  {formState.errors.items?.[index]?.returnedCount && (
                     <p className="text-error">
-                      {formState.errors.items?.[index].obtainedCount.message}
+                      {formState.errors.items?.[index].returnedCount.message}
                     </p>
                   )}
                 </label>
-                {formState.errors.items?.[index] && (
+                {formState.errors.items?.[index]?.message && (
                   <p className="text-error w-28">
                     {formState.errors.items?.[index].message}
                   </p>
@@ -539,9 +539,18 @@ export default function NewDailyClosing({
                 </div>
                 <input
                   type="number"
-                  className="input input-bordered"
+                  min={0}
+                  className={
+                    "input input-bordered" +
+                    classNames({ " !input-error": formState.errors.cardIncome })
+                  }
                   {...register("cardIncome", { valueAsNumber: true })}
                 />
+                {formState.errors.cardIncome && (
+                  <p className="text-error w-60">
+                    {formState.errors.cardIncome.message}
+                  </p>
+                )}
               </label>
 
               <label className="form-control w-full max-w-xs">
@@ -553,9 +562,18 @@ export default function NewDailyClosing({
                 </div>
                 <input
                   type="number"
-                  className="input input-bordered"
+                  min={0}
+                  className={
+                    "input input-bordered" +
+                    classNames({ " !input-error": formState.errors.cashIncome })
+                  }
                   {...register("cashIncome", { valueAsNumber: true })}
                 />
+                {formState.errors.cashIncome && (
+                  <p className="text-error w-60">
+                    {formState.errors.cashIncome.message}
+                  </p>
+                )}
               </label>
             </div>
             <div className="flex flex-col items-center gap-6 shadow-md px-8 py-4 rounded-md">

@@ -37,9 +37,13 @@ export const newClosingSchema = z.object({
     .array(),
   archived: z.boolean().optional(),
   cashIncome: z
-    .number()
+    .number({
+      invalid_type_error: "Uvedená hodnota pro 'Příjem v hotovosti' není číslo",
+    })
     .min(0, "Uvedená hodnota pro 'Příjem v hotovosti' musí být alespoň 0"),
   cardIncome: z
-    .number()
+    .number({
+      invalid_type_error: "Uvedená hodnota pro 'Příjem kartou' není číslo",
+    })
     .min(0, "Uvedená hodnota pro 'Příjem kartou' musí být alespoň 0"),
 });
