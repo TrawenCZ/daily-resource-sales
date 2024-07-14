@@ -1,6 +1,7 @@
 "use client";
 import { DayClosingInitData } from "@/app/(root)/new-daily/page";
 import { newClosingSchema } from "@/utils/schemas";
+import { countTypeResolver } from "@/utils/util";
 import { zodResolver } from "@hookform/resolvers/zod";
 import AddIcon from "@material-symbols/svg-400/outlined/add.svg";
 import CheckIcon from "@material-symbols/svg-400/outlined/check_circle.svg";
@@ -23,21 +24,10 @@ import LoadingAnimation from "../LoadingAnimation";
 
 type CountType = Prisma.SaleResourceCreateArgs["data"]["countType"];
 
-const resourceRecords =
+export const resourceRecords =
   newClosingSchema.shape.items.element._def.schema.shape.resource;
 
-type ResourceRecords = z.infer<typeof resourceRecords>;
-
-const countTypeResolver = (type: CountType | null, singular?: boolean) => {
-  switch (type) {
-    case "BUNCH":
-      return singular ? "svazek" : "svazků";
-    case "KILOGRAM":
-      return singular ? "kilogram" : "kilogramů";
-    case "PIECE":
-      return singular ? "kus" : "kusů";
-  }
-};
+export type ResourceRecords = z.infer<typeof resourceRecords>;
 
 export default function NewDailyClosing({
   initData,

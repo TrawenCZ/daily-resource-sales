@@ -1,5 +1,8 @@
+import LoginButton from "@/components/LoginButton";
 import Navbar from "@/components/Navbar";
+import Providers from "@/components/Providers";
 import type { Metadata } from "next";
+import { getServerSession } from "next-auth";
 import { Inter } from "next/font/google";
 import "./globals.css";
 
@@ -10,16 +13,26 @@ export const metadata: Metadata = {
   description: "Vlastní aplikace pro správu denních uzávěrek.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await getServerSession();
+
   return (
     <html lang="en" data-theme="light">
       <body className={inter.className + " text-base-content"}>
-        <Navbar />
-        {children}
+        <Providers>
+          {session ? (
+            <>
+              <Navbar />
+              {children}
+            </>
+          ) : (
+            <LoginButton />
+          )}
+        </Providers>
       </body>
     </html>
   );

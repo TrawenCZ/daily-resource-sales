@@ -16,7 +16,9 @@ export const GET = async () => {
     },
   });
 
-  const allSellers = await prisma.salePerson.findMany();
+  const allSellers = await prisma.salePerson.findMany({
+    where: { deleted: false },
+  });
   if (allSellers.length === 0)
     return new NextResponse("V systému musí být alespoň jedna osoba.", {
       status: 404,

@@ -47,3 +47,13 @@ export const newClosingSchema = z.object({
     })
     .min(0, "Uvedená hodnota pro 'Příjem kartou' musí být alespoň 0"),
 });
+
+export const newUserSchema = z.object({
+  name: z.string().min(1, "Jméno musí obsahovat alespoň jeden znak."),
+  password: z.string().min(1, "Heslo musí obsahovat alespoň jeden znak."),
+});
+
+export const newResourceSchema = z.object({
+  name: newUserSchema.shape.name,
+  countType: countTypeZodEnum,
+});

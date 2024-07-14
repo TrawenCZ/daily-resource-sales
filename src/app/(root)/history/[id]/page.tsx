@@ -33,7 +33,6 @@ export default function SingleClosingRecordPage({
       .get(`/api/closing/${params.id}`)
       .then((res) => singleClosingRecordSchema.safeParseAsync(res.data))
       .then((parseRes) => {
-        console.log(parseRes.data);
         if (parseRes.success) {
           let totalSum = 0;
           const prices = parseRes.data.items.map((i) => {

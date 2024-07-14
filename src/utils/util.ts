@@ -1,3 +1,5 @@
+import { CountType } from "@prisma/client";
+
 export const compareArrays = (a1: any[], a2: any[]) => {
   if (a1.length !== a2.length) return false;
   for (let i = 0; i < a1.length; i++) {
@@ -16,4 +18,18 @@ export const containsUndefinedFields = (
     if (Object.values(o).some((v) => containsUndefinedFields(v))) return true;
   }
   return false;
+};
+
+export const countTypeResolver = (
+  type: CountType | null,
+  singular?: boolean
+) => {
+  switch (type) {
+    case "BUNCH":
+      return singular ? "svazek" : "svazků";
+    case "KILOGRAM":
+      return singular ? "kilogram" : "kilogramů";
+    case "PIECE":
+      return singular ? "kus" : "kusů";
+  }
 };
