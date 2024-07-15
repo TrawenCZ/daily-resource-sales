@@ -1,10 +1,10 @@
 import { authOptions } from "@/auth";
 import prisma from "@/utils/db";
 import { newUserSchema } from "@/utils/schemas";
+import { hashPasswordSync } from "@/utils/server-utils";
 
 import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
-import { pbkdf2Sync } from "pbkdf2";
 
 export const GET = async () =>
   NextResponse.json(
@@ -38,16 +38,7 @@ export const POST = async (req: NextRequest) => {
   const dbRes = await prisma.salePerson.create({
     data: {
       name: parseRes.data.name,
-      passwordHash: pbkdf2Sync(
-        parseRes.data.password,
-        parseRes.data.password.slice(
-          0,
-          Math.floor(parseRes.data.password.length / 2)
-        ),
-        10000,
-        64,
-        "sha512"
-      ).toString("hex"),
+      passwordHash: hashPasswordSync(parseRes.data.password),
     },
   });
   return NextResponse.json({ success: true, id: dbRes.id });

@@ -1,6 +1,6 @@
 "use client";
-import { DayClosingInitData } from "@/app/(root)/new-daily/page";
-import { newClosingSchema } from "@/utils/schemas";
+
+import { type DayClosingInitData, newClosingSchema } from "@/utils/schemas";
 import { countTypeResolver } from "@/utils/util";
 import { zodResolver } from "@hookform/resolvers/zod";
 import AddIcon from "@material-symbols/svg-400/outlined/add.svg";

@@ -1,69 +1,17 @@
 "use client";
 import NewDailyClosing from "@/components/form/NewDailyClosing";
 import LoadingAnimation from "@/components/LoadingAnimation";
-import { countTypeZodEnum, newDaySchema } from "@/utils/schemas";
+import {
+  dailyClosingSchema,
+  type DayClosingInitData,
+  newDaySchema,
+} from "@/utils/schemas";
 import { zodResolver } from "@hookform/resolvers/zod";
 import NewDayIcon from "@material-symbols/svg-400/outlined/add_box.svg";
-import { Prisma } from "@prisma/client";
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import ReactSelect from "react-select";
-import { z } from "zod";
-
-type DailyClosing = Prisma.$DaySaleRecordPayload["scalars"] &
-  Prisma.$DaySaleRecordPayload["objects"];
-
-export const dailyClosingSchema = z.object({
-  day: z
-    .object({
-      id: z.number(),
-      createdAt: z.coerce.date(),
-      updatedAt: z.coerce.date(),
-      date: z.coerce.date(),
-      cardIncome: z.number(),
-      cashIncome: z.number(),
-      archived: z.boolean(),
-      items: z
-        .object({
-          id: z.number(),
-          createdAt: z.coerce.date(),
-          updatedAt: z.coerce.date(),
-          pricePerOne: z.number(),
-          obtainedCount: z.number(),
-          returnedCount: z.number(),
-          daySaleRecordId: z.number(),
-          resource: z.object({
-            id: z.number(),
-            createdAt: z.coerce.date(),
-            updatedAt: z.coerce.date(),
-            name: z.string(),
-            countType: countTypeZodEnum,
-          }),
-        })
-        .array(),
-      seller: z.object({
-        id: z.number(),
-        createdAt: z.coerce.date(),
-        updatedAt: z.coerce.date(),
-        name: z.string(),
-        phone: z.string().or(z.null()),
-      }),
-    })
-    .or(z.null()),
-  allSellers: z
-    .object({
-      id: z.number(),
-      createdAt: z.coerce.date(),
-      updatedAt: z.coerce.date(),
-      name: z.string(),
-      phone: z.string().or(z.null()),
-    })
-    .array()
-    .min(1),
-});
-
-export type DayClosingInitData = z.infer<typeof dailyClosingSchema>;
 
 export default function NewDailyPage() {
   const [currentDayClosing, setCurrentDayClosing] = useState<

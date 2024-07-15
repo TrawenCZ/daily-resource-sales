@@ -8,6 +8,9 @@
     "start": "next start",
     "lint": "next lint"
   },
+  "prisma": {
+    "seed": "ts-node --compilerOptions {\"module\":\"commonjs\"} prisma/seed/init.ts"
+  },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
     "@material-symbols/svg-400": "^0.21.0",

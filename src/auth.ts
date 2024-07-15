@@ -1,8 +1,8 @@
 import { AuthOptions } from "next-auth";
 import NextAuth from "next-auth/next";
 import Credentials from "next-auth/providers/credentials";
-import { pbkdf2Sync } from "pbkdf2";
 import prisma from "./utils/db";
+import { hashPasswordSync } from "./utils/server-utils";
 
 export const authOptions: AuthOptions = {
   theme: {
@@ -57,16 +57,7 @@ export const authOptions: AuthOptions = {
           where: {
             deleted: false,
             name: credentials?.username,
-            passwordHash: pbkdf2Sync(
-              credentials.password,
-              credentials.password.slice(
-                0,
-                Math.floor(credentials.password.length / 2)
-              ),
-              10000,
-              64,
-              "sha512"
-            ).toString("hex"),
+            passwordHash: hashPasswordSync(credentials.password),
           },
         });
 

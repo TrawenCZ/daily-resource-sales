@@ -57,3 +57,54 @@ export const newResourceSchema = z.object({
   name: newUserSchema.shape.name,
   countType: countTypeZodEnum,
 });
+
+export const dailyClosingSchema = z.object({
+  day: z
+    .object({
+      id: z.number(),
+      createdAt: z.coerce.date(),
+      updatedAt: z.coerce.date(),
+      date: z.coerce.date(),
+      cardIncome: z.number(),
+      cashIncome: z.number(),
+      archived: z.boolean(),
+      items: z
+        .object({
+          id: z.number(),
+          createdAt: z.coerce.date(),
+          updatedAt: z.coerce.date(),
+          pricePerOne: z.number(),
+          obtainedCount: z.number(),
+          returnedCount: z.number(),
+          daySaleRecordId: z.number(),
+          resource: z.object({
+            id: z.number(),
+            createdAt: z.coerce.date(),
+            updatedAt: z.coerce.date(),
+            name: z.string(),
+            countType: countTypeZodEnum,
+          }),
+        })
+        .array(),
+      seller: z.object({
+        id: z.number(),
+        createdAt: z.coerce.date(),
+        updatedAt: z.coerce.date(),
+        name: z.string(),
+        phone: z.string().or(z.null()),
+      }),
+    })
+    .or(z.null()),
+  allSellers: z
+    .object({
+      id: z.number(),
+      createdAt: z.coerce.date(),
+      updatedAt: z.coerce.date(),
+      name: z.string(),
+      phone: z.string().or(z.null()),
+    })
+    .array()
+    .min(1),
+});
+
+export type DayClosingInitData = z.infer<typeof dailyClosingSchema>;

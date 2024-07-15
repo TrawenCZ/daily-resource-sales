@@ -1,6 +1,7 @@
 "use client";
 
 import LoadingAnimation from "@/components/LoadingAnimation";
+import { dailyClosingSchema } from "@/utils/schemas";
 import CoinIcon from "@material-symbols/svg-400/outlined/paid.svg";
 import PaymentIcon from "@material-symbols/svg-400/outlined/payments.svg";
 import PersonIcon from "@material-symbols/svg-400/outlined/person.svg";
@@ -9,7 +10,6 @@ import StoreIcon from "@material-symbols/svg-400/outlined/storefront.svg";
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { z } from "zod";
-import { dailyClosingSchema } from "../../new-daily/page";
 
 const singleClosingRecordSchema = dailyClosingSchema.omit({ allSellers: true })
   .shape.day._def.options[0];
