@@ -1,12 +1,16 @@
-FROM node:alpine AS deps
+FROM node:slim AS deps
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable
+
 
 
 WORKDIR /app
 
 COPY ./package.json package.json
-RUN npm i
-RUN npm i -g pm2 ts-node prisma
-RUN apk add --no-cache bash
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install 
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm add -g pm2 ts-node
+RUN apt-get install bash
 
 
 
@@ -14,9 +18,10 @@ FROM deps AS build
 
 WORKDIR /app
 
+
 COPY . .
-RUN prisma generate
-RUN npm run build
+RUN pnpx prisma generate
+RUN pnpm run build
 
 
 
@@ -24,12 +29,12 @@ FROM deps AS final
 
 WORKDIR /app
 
-RUN npm prune --production
+RUN pnpm prune --prod
 
 COPY --from=build /app/.next .next/
 COPY ./deployment/ .
 COPY ./prisma/ prisma/
-RUN prisma generate
-RUN npm i --save-dev @types/pbkdf2
+RUN pnpx prisma generate
+RUN pnpm add @types/pbkdf2
 
 ENTRYPOINT [ "bash", "/app/start.sh" ]
