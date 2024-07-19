@@ -4,11 +4,11 @@ import AddIcon from "@material-symbols/svg-400/outlined/add.svg";
 import HistoryIcon from "@material-symbols/svg-400/outlined/history.svg";
 import InvertoryIcon from "@material-symbols/svg-400/outlined/inventory.svg";
 import Link from "next/link";
-import UserBadge from "./UserBadge";
+import UserBadge from "../UserBadge";
 
-export default function Navbar() {
+export default function Topbar() {
   return (
-    <div className="navbar bg-base-200 h-16 shadow-md z-10 sticky top-0 justify-between px-4">
+    <div className="hidden lg:block navbar bg-base-200 h-16 shadow-md z-10 sticky top-0 justify-between px-4">
       <div className="flex gap-4">
         <Link href="/" className="text-xl font-bold flex mx-4">
           Uzávěrky<span className="text-emerald-700">Online</span>

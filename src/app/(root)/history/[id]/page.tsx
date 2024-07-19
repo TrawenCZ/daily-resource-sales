@@ -126,7 +126,7 @@ export default function SingleClosingRecordPage({
                     Hotovost{" "}
                   </div>
                   <div className="stat-value text-secondary">
-                    {info.cardIncome} CZK
+                    {info.cashIncome} CZK
                   </div>
                 </div>
               </div>

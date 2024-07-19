@@ -29,7 +29,7 @@ export default function UserBadge() {
 
             <ul
               tabIndex={0}
-              className="dropdown-content  menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow mt-2 gap-y-3"
+              className="dropdown-content hidden lg:block menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow mt-2 gap-y-3"
             >
               <div className="text-center font-bold text-2xl mt-3 flex flex-col">
                 {session.data.user?.name}

@@ -1,5 +1,6 @@
 import LoginButton from "@/components/LoginButton";
-import Navbar from "@/components/Navbar";
+import Bottombar from "@/components/navigation/Bottombar";
+import Topbar from "@/components/navigation/Topbar";
 import Providers from "@/components/Providers";
 import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
@@ -25,10 +26,11 @@ export default async function RootLayout({
       <body className={inter.className + " text-base-content"}>
         <Providers>
           {session ? (
-            <>
-              <Navbar />
+            <div className="flex flex-col w-screen h-screen bg-base-100">
+              <Topbar />
+              <Bottombar />
               {children}
-            </>
+            </div>
           ) : (
             <LoginButton />
           )}

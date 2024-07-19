@@ -170,7 +170,10 @@ export default function NewDailyClosing({
 
   return (
     <>
-      <dialog ref={removeItemModalRef} className="modal">
+      <dialog
+        ref={removeItemModalRef}
+        className="modal modal-bottom lg:modal-middle"
+      >
         <div className="modal-box">
           <form method="dialog">
             <button className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">
@@ -185,9 +188,11 @@ export default function NewDailyClosing({
                 className="btn btn-error w-32"
                 onClick={() => {
                   if (itemIndexForModal !== null) {
-                    axios.post(`/api/closing/${initData.day.id}`, {
-                      itemId: formSubscription.items?.at(itemIndexForModal)?.id,
-                    });
+                    if (itemsSubscription[itemIndexForModal].id !== null)
+                      axios.post(`/api/closing/${initData.day.id}`, {
+                        itemId:
+                          formSubscription.items?.at(itemIndexForModal)?.id,
+                      });
                     remove(itemIndexForModal);
                   }
                 }}
