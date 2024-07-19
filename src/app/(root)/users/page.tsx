@@ -108,30 +108,28 @@ export default function UserManagementPage() {
                 </thead>
                 <tbody>
                   {users.map((u, i) => (
-                    <>
-                      <tr>
-                        <td>{i + 1}</td>
-                        <td className="font-bold">{u.name}</td>
-                        <td>
-                          {session.data?.user?.id !== u.id && (
-                            <button
-                              className="btn btn-ghost"
-                              onClick={() => {
-                                setUserToDeleteId(u.id);
-                                deleteUserModalRef.current?.showModal();
+                    <tr key={u.id}>
+                      <td>{i + 1}</td>
+                      <td className="font-bold">{u.name}</td>
+                      <td>
+                        {session.data?.user?.id !== u.id && (
+                          <button
+                            className="btn btn-ghost"
+                            onClick={() => {
+                              setUserToDeleteId(u.id);
+                              deleteUserModalRef.current?.showModal();
+                            }}
+                          >
+                            <DeleteIcon
+                              style={{
+                                fill: "var(--fallback-er,oklch(var(--er)/1))",
+                                height: "80%",
                               }}
-                            >
-                              <DeleteIcon
-                                style={{
-                                  fill: "var(--fallback-er,oklch(var(--er)/1))",
-                                  height: "80%",
-                                }}
-                              />
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    </>
+                            />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
                   ))}
                 </tbody>
               </table>

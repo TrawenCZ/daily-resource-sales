@@ -8,7 +8,7 @@ import UserBadge from "../UserBadge";
 
 export default function Topbar() {
   return (
-    <div className="hidden lg:block navbar bg-base-200 h-16 shadow-md z-10 sticky top-0 justify-between px-4">
+    <div className="hidden lg:flex navbar bg-base-200 h-16 shadow-md z-10 sticky top-0 justify-between px-4">
       <div className="flex gap-4">
         <Link href="/" className="text-xl font-bold flex mx-4">
           Uzávěrky<span className="text-emerald-700">Online</span>

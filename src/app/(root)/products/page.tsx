@@ -108,29 +108,27 @@ export default function ProductManagementPage() {
                   </thead>
                   <tbody>
                     {resources.map((r, i) => (
-                      <>
-                        <tr>
-                          <td>{i + 1}</td>
-                          <td className="font-bold">{r.name}</td>
-                          <td>{countTypeResolver(r.countType, true)}</td>
-                          <td>
-                            <button
-                              className="btn btn-ghost"
-                              onClick={() => {
-                                setItemToDeleteId(r.id);
-                                deleteResourceModalRef.current?.showModal();
+                      <tr key={r.id}>
+                        <td>{i + 1}</td>
+                        <td className="font-bold">{r.name}</td>
+                        <td>{countTypeResolver(r.countType, true)}</td>
+                        <td>
+                          <button
+                            className="btn btn-ghost"
+                            onClick={() => {
+                              setItemToDeleteId(r.id);
+                              deleteResourceModalRef.current?.showModal();
+                            }}
+                          >
+                            <DeleteIcon
+                              style={{
+                                fill: "var(--fallback-er,oklch(var(--er)/1))",
+                                height: "80%",
                               }}
-                            >
-                              <DeleteIcon
-                                style={{
-                                  fill: "var(--fallback-er,oklch(var(--er)/1))",
-                                  height: "80%",
-                                }}
-                              />
-                            </button>
-                          </td>
-                        </tr>
-                      </>
+                            />
+                          </button>
+                        </td>
+                      </tr>
                     ))}
                   </tbody>
                 </table>

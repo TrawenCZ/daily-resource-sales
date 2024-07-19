@@ -9,7 +9,7 @@ export default function Home() {
           <span className="text-emerald-700">Online</span>
         </div>
         <p className="font-semibold mt-2">
-          Prosím pokračujte na některou sekci ve vrchním panelu.
+          Prosím pokračujte na některou sekci v navigačním panelu.
         </p>
       </div>
     </>

@@ -49,6 +49,8 @@ export default function NewDailyClosing({
 
   const [currPrice, setCurrPrice] = useState<number>(0);
 
+  const [showStats, setShowStats] = useState<boolean>(false);
+
   const removeItemModalRef = useRef<HTMLDialogElement | null>(null);
   const saveDayRef = useRef<HTMLDialogElement | null>(null);
   const submitButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -204,7 +206,7 @@ export default function NewDailyClosing({
         </div>
       </dialog>
 
-      <dialog ref={saveDayRef} className="modal">
+      <dialog ref={saveDayRef} className="modal modal-bottom lg:modal-middle">
         <div className="modal-box">
           <form method="dialog">
             <button className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">
@@ -230,8 +232,8 @@ export default function NewDailyClosing({
         </div>
       </dialog>
 
-      <div className="h-0 sticky top-24">
-        <div className="relative left-8 p-6 shadow-md w-max flex flex-col items-center">
+      <div className="bottom-[4rem] fixed lg:sticky lg:top-24 w-full z-10 lg:left-8 mx-auto lg:mx-0 p-6 shadow-xl [--tw-shadow:0_100px_10px_100px_rgb(0_0_0_/_0.25)] lg:w-max max-w-full flex flex-col items-center bg-base-100 rounded-md">
+        <div className="flex gap-6 lg:flex-col">
           <div className="w-max h-max flex gap-3 items-center ">
             {saveStatus === "saved" ? (
               <>
@@ -252,6 +254,7 @@ export default function NewDailyClosing({
                   onClick={() => setSaveStatus("saving")}
                   disabled={
                     !formState.isValid ||
+                    formSubscription.items?.length === 0 ||
                     formSubscription.items?.some(
                       (i) => i.resource?.name === ""
                     ) ||
@@ -271,38 +274,6 @@ export default function NewDailyClosing({
             )}
           </div>
           <div className="divider my-2" />
-          <div className="flex flex-col">
-            <div className="stat">
-              <div className="stat-figure text-primary">
-                <CartIcon />
-              </div>
-              <div className="stat-title">Cena celkem</div>
-              <div className="stat-value text-primary">{currPrice} CZK</div>
-              {/* <div className="stat-desc">21% more than last month</div> */}
-            </div>
-
-            <div className="stat">
-              <div className="stat-figure text-secondary">
-                <PaymentIcon />
-              </div>
-              <div className="stat-title">Příjem</div>
-              <div className="stat-value text-secondary">{currIncome} CZK</div>
-              {/* <div className="stat-desc">21% more than last month</div> */}
-            </div>
-
-            <div className="stat">
-              <div className="stat-figure text-accent">
-                <StoreIcon />
-              </div>
-              <div className="stat-title">Bilance</div>
-              <div className="stat-value text-accent">
-                {getValues("cardIncome") + getValues("cashIncome") - currPrice}{" "}
-                CZK
-              </div>
-              {/* <div className="stat-desc">21% more than last month</div> */}
-            </div>
-          </div>
-          <div className="divider my-2" />
           <div className="flex flex-col items-center rounded-lg">
             <p className="font-semibold opacity-70">Zodpovědná osoba</p>
             <p className="font-bold text-2xl mt-1">
@@ -310,9 +281,43 @@ export default function NewDailyClosing({
             </p>
           </div>
         </div>
+        <div className="divider my-0 lg:my-2" />
+        {showStats && (
+          <div className="stats lg:flex lg:flex-col max-w-full [&_svg]:hidden lg:[&_svg]:block [&_p]:!text-3xl [&_p]:lg:!text-4xl">
+            <div className="stat">
+              <div className="stat-figure text-primary">
+                <CartIcon />
+              </div>
+              <div className="stat-title">Cena celkem</div>
+              <p className="stat-value  text-primary">{currPrice} CZK</p>
+            </div>
+
+            <div className="stat">
+              <div className="stat-figure text-secondary">
+                <PaymentIcon />
+              </div>
+              <div className="stat-title">Příjem</div>
+              <p className="stat-value text-secondary">{currIncome} CZK</p>
+            </div>
+
+            <div className="stat">
+              <div className="stat-figure text-accent">
+                <StoreIcon />
+              </div>
+              <div className="stat-title">Bilance</div>
+              <p className="stat-value text-accent">
+                {getValues("cardIncome") + getValues("cashIncome") - currPrice}{" "}
+                CZK
+              </p>
+            </div>
+          </div>
+        )}
+        <button className="btn" onClick={() => setShowStats((v) => !v)}>
+          {showStats ? "Skrýt statistiky" : "Zobrazit statistiky"}
+        </button>
       </div>
 
-      <div className="flex flex-col items-center justify-center mb-12 mt-8">
+      <div className="flex flex-col items-center justify-center mb-96 mt-8 max-w-full">
         <h1 className="font-bold text-3xl shadow-md p-6 rounded-lg">
           Uzávěrka pro den{" "}
           <span className="text-green-700">
@@ -322,183 +327,193 @@ export default function NewDailyClosing({
         {availableResources ? (
           <form
             onSubmit={handleSubmit(onSubmit)}
-            className="container flex flex-col mt-12 gap-y-6 items-center"
+            className="container flex flex-col mt-12 gap-y-6 items-center px-2"
           >
             {fields.map((item, index) => (
               <section
                 key={item.id}
-                className="flex gap-4 items-center border p-2 rounded-md w-max [&_span]:font-semibold 
+                className="flex flex-col lg:flex-row max-w-full border rounded-md p-2"
+              >
+                <div
+                  className="flex flex-wrap max-w-full gap-4 items-center w-max [&_span]:font-semibold 
                 [&>label>p]:w-52
                 [&>label>input]:w-44 [&>label>input]:input [&>label>input]:input-bordered [&>label>input]:h-[2.4rem] [&>label>input]:rounded-md"
-              >
-                <label>
-                  <div className="label">
-                    <span className="label-text">Položka</span>
-                  </div>
-                  <ReactSelect
-                    className="w-64"
-                    name={`items.${index}.resource`}
-                    getOptionLabel={(d) => d.name}
-                    placeholder="Vybrat..."
-                    noOptionsMessage={() => "Žádné možnosti k výběru"}
-                    isSearchable={true}
-                    options={availableResources}
-                    isMulti={false}
-                    value={{
-                      id: watch(`items.${index}.resource.id`),
-                      name: watch(`items.${index}.resource.name`),
-                      countType: watch(`items.${index}.resource.countType`),
-                    }}
-                    onChange={(val) => {
-                      if (val) {
-                        setValue(`items.${index}.resource.id`, val.id, {
-                          shouldTouch: true,
-                        });
-                        setValue(`items.${index}.resource.name`, val.name, {
-                          shouldTouch: true,
-                        });
-                        setValue(
-                          `items.${index}.resource.countType`,
-                          val.countType,
-                          {
-                            shouldTouch: true,
-                          }
-                        );
-                      }
-                    }}
-                  />
-                </label>
-
-                <label>
-                  <div className="label">
-                    <span className="label-text">
-                      Cena{" "}
-                      {watch(`items.${index}.resource.countType`)
-                        ? "za "
-                        : null}
-                      {countTypeResolver(
-                        watch(`items.${index}.resource.countType`),
-                        true
-                      )}
-                    </span>
-                  </div>
-
-                  <input
-                    type="number"
-                    min={0}
-                    className={classNames({
-                      "!input-error":
-                        formState.errors.items?.[index]?.pricePerOne,
-                    })}
-                    {...register(`items.${index}.pricePerOne`, {
-                      valueAsNumber: true,
-                    })}
-                  />
-                  {formState.errors.items?.[index]?.pricePerOne && (
-                    <p className="text-error">
-                      {formState.errors.items?.[index].pricePerOne.message}
-                    </p>
-                  )}
-                </label>
-
-                <label>
-                  <div className="label">
-                    <span className="label-text">
-                      Naskladněno{" "}
-                      {countTypeResolver(
-                        watch(`items.${index}.resource.countType`)
-                      )}
-                    </span>
-                  </div>
-
-                  <input
-                    type="number"
-                    className={classNames({
-                      "!input-error":
-                        formState.errors.items?.[index]?.obtainedCount ||
-                        formState.errors.items?.[index]?.message,
-                    })}
-                    min={watch(`items.${index}.returnedCount`) ?? 0}
-                    {...register(`items.${index}.obtainedCount`, {
-                      valueAsNumber: true,
-                      onBlur: () => trigger(`items.${index}`),
-                    })}
-                  />
-                  {formState.errors.items?.[index]?.obtainedCount && (
-                    <p className="text-error">
-                      {formState.errors.items?.[index].obtainedCount.message}
-                    </p>
-                  )}
-                </label>
-
-                <label>
-                  <div className="label">
-                    <span className="label-text">
-                      Vráceno{" "}
-                      {countTypeResolver(
-                        watch(`items.${index}.resource.countType`)
-                      )}
-                    </span>
-                  </div>
-
-                  <input
-                    type="number"
-                    className={classNames({
-                      "!input-error":
-                        formState.errors.items?.[index]?.returnedCount ||
-                        formState.errors.items?.[index]?.message,
-                    })}
-                    min={0}
-                    max={
-                      isNaN(watch(`items.${index}.obtainedCount`))
-                        ? Infinity
-                        : watch(`items.${index}.obtainedCount`)
-                    }
-                    {...register(`items.${index}.returnedCount`, {
-                      valueAsNumber: true,
-                      onBlur: () => trigger(`items.${index}`),
-                    })}
-                  />
-                  {formState.errors.items?.[index]?.returnedCount && (
-                    <p className="text-error">
-                      {formState.errors.items?.[index].returnedCount.message}
-                    </p>
-                  )}
-                </label>
-                {formState.errors.items?.[index]?.message && (
-                  <p className="text-error w-28">
-                    {formState.errors.items?.[index].message}
-                  </p>
-                )}
-
-                <div className="divider divider-horizontal mx-0 ml-3" />
-                <div className="flex flex-col">
-                  <span className="!font-medium opacity-75">Cena</span>
-                  <span>
-                    {watch(`items.${index}.pricePerOne`) *
-                      (watch(`items.${index}.obtainedCount`) -
-                        watch(`items.${index}.returnedCount`))}{" "}
-                    CZK
-                  </span>
-                </div>
-                <div className="divider divider-horizontal mx-0 ml-3" />
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setItemIndexForModal(index);
-                    removeItemModalRef.current?.showModal();
-                  }}
                 >
-                  <DeleteIcon
-                    style={{
-                      width: "3rem",
-                      height: "3rem",
-                      marginRight: "1rem",
-                      fill: "var(--fallback-er,oklch(var(--er)/1))",
+                  <label>
+                    <div className="label">
+                      <span className="label-text">Položka</span>
+                    </div>
+                    <ReactSelect
+                      className="w-64"
+                      name={`items.${index}.resource`}
+                      getOptionLabel={(d) => d.name}
+                      placeholder="Vybrat..."
+                      noOptionsMessage={() => "Žádné možnosti k výběru"}
+                      isSearchable={true}
+                      options={availableResources}
+                      isMulti={false}
+                      value={{
+                        id: watch(`items.${index}.resource.id`),
+                        name: watch(`items.${index}.resource.name`),
+                        countType: watch(`items.${index}.resource.countType`),
+                      }}
+                      onChange={(val) => {
+                        if (val) {
+                          setValue(`items.${index}.resource.id`, val.id, {
+                            shouldTouch: true,
+                          });
+                          setValue(`items.${index}.resource.name`, val.name, {
+                            shouldTouch: true,
+                          });
+                          setValue(
+                            `items.${index}.resource.countType`,
+                            val.countType,
+                            {
+                              shouldTouch: true,
+                            }
+                          );
+                        }
+                      }}
+                    />
+                  </label>
+
+                  <label>
+                    <div className="label">
+                      <span className="label-text">
+                        Cena{" "}
+                        {watch(`items.${index}.resource.countType`)
+                          ? "za "
+                          : null}
+                        {countTypeResolver(
+                          watch(`items.${index}.resource.countType`),
+                          true
+                        )}
+                      </span>
+                    </div>
+
+                    <input
+                      type="number"
+                      min={0}
+                      className={classNames({
+                        "!input-error":
+                          formState.errors.items?.[index]?.pricePerOne,
+                      })}
+                      {...register(`items.${index}.pricePerOne`, {
+                        valueAsNumber: true,
+                      })}
+                    />
+                    {formState.errors.items?.[index]?.pricePerOne && (
+                      <p className="text-error">
+                        {formState.errors.items?.[index].pricePerOne.message}
+                      </p>
+                    )}
+                  </label>
+
+                  <label>
+                    <div className="label">
+                      <span className="label-text">
+                        Naskladněno{" "}
+                        {countTypeResolver(
+                          watch(`items.${index}.resource.countType`)
+                        )}
+                      </span>
+                    </div>
+
+                    <input
+                      type="number"
+                      className={classNames({
+                        "!input-error":
+                          formState.errors.items?.[index]?.obtainedCount ||
+                          formState.errors.items?.[index]?.message,
+                      })}
+                      min={
+                        isNaN(watch(`items.${index}.returnedCount`))
+                          ? 0
+                          : watch(`items.${index}.returnedCount`)
+                      }
+                      {...register(`items.${index}.obtainedCount`, {
+                        valueAsNumber: true,
+                        onBlur: () => trigger(`items.${index}`),
+                      })}
+                    />
+                    {formState.errors.items?.[index]?.obtainedCount && (
+                      <p className="text-error">
+                        {formState.errors.items?.[index].obtainedCount.message}
+                      </p>
+                    )}
+                  </label>
+
+                  <label>
+                    <div className="label">
+                      <span className="label-text">
+                        Vráceno{" "}
+                        {countTypeResolver(
+                          watch(`items.${index}.resource.countType`)
+                        )}
+                      </span>
+                    </div>
+
+                    <input
+                      type="number"
+                      className={classNames({
+                        "!input-error":
+                          formState.errors.items?.[index]?.returnedCount ||
+                          formState.errors.items?.[index]?.message,
+                      })}
+                      min={0}
+                      max={
+                        isNaN(watch(`items.${index}.obtainedCount`))
+                          ? Infinity
+                          : watch(`items.${index}.obtainedCount`)
+                      }
+                      {...register(`items.${index}.returnedCount`, {
+                        valueAsNumber: true,
+                        onBlur: () => trigger(`items.${index}`),
+                      })}
+                    />
+                    {formState.errors.items?.[index]?.returnedCount && (
+                      <p className="text-error">
+                        {formState.errors.items?.[index].returnedCount.message}
+                      </p>
+                    )}
+                  </label>
+                  {formState.errors.items?.[index]?.message && (
+                    <p className="text-error w-28">
+                      {formState.errors.items?.[index].message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="divider my-1 lg:divider-horizontal mx-0 ml-3" />
+                <div className="flex ml-2 lg:ml-0">
+                  <div className="flex lg:flex-col gap-3 items-center">
+                    <span className="!font-semibold opacity-75">Cena</span>
+                    <span>
+                      {watch(`items.${index}.pricePerOne`) *
+                        (watch(`items.${index}.obtainedCount`) -
+                          watch(`items.${index}.returnedCount`))}{" "}
+                      CZK
+                    </span>
+                  </div>
+                  <div className="divider divider-horizontal mx-0 ml-3" />
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setItemIndexForModal(index);
+                      removeItemModalRef.current?.showModal();
                     }}
-                  />
-                </button>
+                  >
+                    <DeleteIcon
+                      style={{
+                        width: "3rem",
+                        height: "3rem",
+                        marginRight: "1rem",
+                        fill: "var(--fallback-er,oklch(var(--er)/1))",
+                      }}
+                    />
+                  </button>
+                </div>
               </section>
             ))}
             <button

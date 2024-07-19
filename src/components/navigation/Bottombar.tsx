@@ -25,7 +25,7 @@ export default function Bottombar() {
 
   return (
     <>
-      <div className="drawer drawer-end z-20">
+      <div className="drawer drawer-end z-30">
         <input
           id="my-drawer-4"
           type="checkbox"
@@ -73,24 +73,26 @@ export default function Bottombar() {
           </ul>
         </div>
       </div>
-      <div className="btm-nav lg:hidden [&>a]:py-1 shadow-2xl [--tw-shadow:0_100px_10px_100px_rgb(0_0_0_/_0.25)] z-10">
-        <Link href="/" className={classNames({ active: route === "/" })}>
-          <HomeIcon />
-          <span>Domů</span>
-        </Link>
+      <div>
+        <div className="btm-nav lg:hidden [&>a]:py-1 shadow-2xl [--tw-shadow:0_100px_10px_100px_rgb(0_0_0_/_0.25)] z-20">
+          <Link href="/" className={classNames({ active: route === "/" })}>
+            <HomeIcon />
+            <span>Domů</span>
+          </Link>
 
-        <Link
-          href="/new-daily"
-          className={classNames({ active: route === "/new-daily" })}
-        >
-          <AddIcon />
-          Nová uzávěrka
-        </Link>
+          <Link
+            href="/new-daily"
+            className={classNames({ active: route === "/new-daily" })}
+          >
+            <AddIcon />
+            Nová uzávěrka
+          </Link>
 
-        <label htmlFor="my-drawer-4" className="">
-          <MenuIcon />
-          Více
-        </label>
+          <label htmlFor="my-drawer-4" className="">
+            <MenuIcon />
+            Více
+          </label>
+        </div>
       </div>
     </>
   );

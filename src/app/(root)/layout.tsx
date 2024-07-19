@@ -23,14 +23,18 @@ export default async function RootLayout({
 
   return (
     <html lang="en" data-theme="light">
+      <meta
+        name="viewport"
+        content="viewport-fit=cover width=device-width, initial-scale=1.0"
+      />
       <body className={inter.className + " text-base-content"}>
         <Providers>
           {session ? (
-            <div className="flex flex-col w-screen h-screen bg-base-100">
+            <>
               <Topbar />
               <Bottombar />
               {children}
-            </div>
+            </>
           ) : (
             <LoginButton />
           )}
