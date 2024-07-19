@@ -283,7 +283,7 @@ export default function NewDailyClosing({
         </div>
         <div className="divider my-0 lg:my-2" />
         {showStats && (
-          <div className="stats lg:flex lg:flex-col max-w-full [&_svg]:hidden lg:[&_svg]:block [&_p]:!text-3xl [&_p]:lg:!text-4xl">
+          <div className="stats lg:flex lg:flex-col max-w-full [&_svg]:hidden lg:[&_svg]:block [&_p]:!text-2xl [&_p]:lg:!text-4xl [&>div]:[column-gap:0]">
             <div className="stat">
               <div className="stat-figure text-primary">
                 <CartIcon />
@@ -317,7 +317,7 @@ export default function NewDailyClosing({
         </button>
       </div>
 
-      <div className="flex flex-col items-center justify-center mb-96 mt-8 max-w-full">
+      <div className="flex flex-col items-center justify-center mb-96 mt-8 w-full">
         <h1 className="font-bold text-3xl shadow-md p-6 rounded-lg">
           Uzávěrka pro den{" "}
           <span className="text-green-700">
@@ -327,7 +327,7 @@ export default function NewDailyClosing({
         {availableResources ? (
           <form
             onSubmit={handleSubmit(onSubmit)}
-            className="container flex flex-col mt-12 gap-y-6 items-center px-2"
+            className="lg:container flex flex-col mt-12 gap-y-6 items-center px-2 w-full"
           >
             {fields.map((item, index) => (
               <section
