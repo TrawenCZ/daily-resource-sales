@@ -8,9 +8,9 @@ RUN corepack enable
 WORKDIR /app
 
 COPY ./package.json package.json
+RUN apt-get update -y && apt-get install -y bash openssl
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install 
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm add -g pm2 ts-node
-RUN apt-get install bash
 
 
 

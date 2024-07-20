@@ -28,17 +28,19 @@ export default async function RootLayout({
         content="viewport-fit=cover width=device-width, initial-scale=1.0"
       />
       <body className={inter.className + " text-base-content"}>
-        <Providers>
-          {session ? (
-            <>
-              <Topbar />
-              <Bottombar />
-              {children}
-            </>
-          ) : (
-            <LoginButton />
-          )}
-        </Providers>
+        <main className="overflow-auto">
+          <Providers>
+            {session ? (
+              <>
+                <Topbar />
+                <Bottombar />
+                {children}
+              </>
+            ) : (
+              <LoginButton />
+            )}
+          </Providers>
+        </main>
       </body>
     </html>
   );

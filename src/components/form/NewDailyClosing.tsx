@@ -5,6 +5,7 @@ import { countTypeResolver } from "@/utils/util";
 import { zodResolver } from "@hookform/resolvers/zod";
 import AddIcon from "@material-symbols/svg-400/outlined/add.svg";
 import CheckIcon from "@material-symbols/svg-400/outlined/check_circle.svg";
+import ToolIcon from "@material-symbols/svg-400/outlined/construction.svg";
 import CreditCardIcon from "@material-symbols/svg-400/outlined/credit_card.svg";
 import DeleteIcon from "@material-symbols/svg-400/outlined/delete.svg";
 import CoinIcon from "@material-symbols/svg-400/outlined/paid.svg";
@@ -16,6 +17,7 @@ import { Prisma } from "@prisma/client";
 import axios from "axios";
 import classNames from "classnames";
 import { useRouter } from "next/navigation";
+import objectHash from "object-hash";
 import { useEffect, useRef, useState } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import ReactSelect from "react-select";
@@ -43,9 +45,27 @@ export default function NewDailyClosing({
   const [itemIndexForModal, setItemIndexForModal] = useState<number | null>(
     null
   );
-  const [saveStatus, setSaveStatus] = useState<
-    "saved" | "unsaved" | "saving" | "freshlySaved"
-  >("saved");
+  const [savedStateObjectHash, setSavedStateObjectHash] = useState<string>(
+    objectHash({
+      items: initData.day.items.map((item) => ({
+        id: item.id,
+        pricePerOne: item.pricePerOne,
+        obtainedCount: item.obtainedCount,
+        returnedCount: item.returnedCount,
+        resource: {
+          id: item.resource.id,
+          name: item.resource.name,
+          countType: item.resource.countType,
+        },
+      })),
+      cardIncome: initData.day.cardIncome,
+      cashIncome: initData.day.cashIncome,
+    })
+  );
+  const [savingState, setSavingState] = useState<{
+    state: "saving" | "unsaved" | "saved";
+    shouldSave?: boolean;
+  }>({ state: "saved", shouldSave: false });
 
   const [currPrice, setCurrPrice] = useState<number>(0);
 
@@ -95,31 +115,50 @@ export default function NewDailyClosing({
   const itemsSubscription = useWatch({ control: control, name: "items" });
 
   useEffect(() => {
-    if (saveStatus === "saving") {
-      const cleanedData = {
-        ...formSubscription,
-        items: formSubscription.items?.filter(
-          (i) => i.resource && i.resource.name !== ""
-        ),
-      };
+    if (!savingState.shouldSave) return;
+    setSavingState({ state: "saving", shouldSave: false });
+    const tmpObject = {
+      ...formSubscription,
+      items: [...(formSubscription.items ?? [])],
+    };
 
-      axios
-        .put(`/api/closing/${initData.day.id}`, cleanedData)
-        .then((res) => {
-          if (saveStatus === "saving") {
-            (res.data as { id: number }[]).forEach((elem, index) => {
-              if (formSubscription.items)
-                setValue(`items.${index}.id`, elem.id);
-            });
-            setSaveStatus("freshlySaved");
-          }
-        })
-        .catch((e) => {
-          console.error(e);
-          setSaveStatus("unsaved");
+    const cleanedData = {
+      ...formSubscription,
+      items: formSubscription.items?.filter(
+        (i) => i.resource && i.resource.name !== ""
+      ),
+    };
+
+    axios
+      .put(`/api/closing/${initData.day.id}`, cleanedData)
+      .then((res) => {
+        (res.data as { id: number }[]).forEach((elem, index) => {
+          if (formSubscription.items) setValue(`items.${index}.id`, elem.id);
+          if (tmpObject.items.at(index))
+            tmpObject.items.at(index)!.id = elem.id;
         });
-    }
-  }, [formSubscription, initData.day.id, saveStatus, setValue]);
+        setSavedStateObjectHash(objectHash(tmpObject));
+        setSavingState({ state: "saved" });
+      })
+      .catch((e) => {
+        console.error(e);
+        setSavingState({ state: "unsaved" });
+      });
+  }, [
+    formSubscription,
+    initData.day.id,
+    savedStateObjectHash,
+    savingState,
+    setValue,
+  ]);
+
+  useEffect(() => {
+    setSavingState((s) =>
+      objectHash(formSubscription) === savedStateObjectHash
+        ? { ...s, state: "saved" }
+        : { ...s, state: "unsaved" }
+    );
+  }, [formSubscription, savedStateObjectHash]);
 
   useEffect(() => {
     getValues("items").forEach((item, index) => {
@@ -144,10 +183,6 @@ export default function NewDailyClosing({
       .catch((err) => console.error(err));
   }, [getValues, setValue]);
 
-  useEffect(() => {
-    setSaveStatus((st) => (st === "freshlySaved" ? "saved" : "unsaved"));
-  }, [formSubscription]);
-
   const onSubmit: Parameters<typeof handleSubmit>[0] = async (data) => {
     const finalData = { ...data, archived: true };
     try {
@@ -169,6 +204,50 @@ export default function NewDailyClosing({
   }, [itemsSubscription]);
 
   const currIncome = watch("cardIncome") + watch("cashIncome");
+
+  const saveStateRender = () => {
+    switch (savingState.state) {
+      case "saved":
+        return (
+          <>
+            <div className="text-success flex gap-2 items-center">
+              <CheckIcon style={{ height: "2rem", width: "2rem" }} />
+              <p>Průběžně uloženo</p>
+            </div>
+          </>
+        );
+      case "saving":
+        return (
+          <>
+            <span className="loading loading-bars loading-md" />
+            Ukládám
+          </>
+        );
+      case "unsaved":
+        return (
+          <button
+            className="btn btn-outline animate-[wiggle_5s_ease-in-out_infinite] --[animation-delay:2s]"
+            onClick={() => setSavingState((s) => ({ ...s, shouldSave: true }))}
+            disabled={shouldDisableSave}
+          >
+            <span className="absolute flex h-5 w-5 -right-1 -top-1">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-warning opacity-75" />
+              <span className="relative inline-flex rounded-full h-5 w-5 bg-yellow-500" />
+            </span>
+            <SaveIcon style={{ height: "2rem", width: "2rem" }} />
+            Průběžně uložit
+          </button>
+        );
+    }
+  };
+
+  const shouldDisableSave =
+    !formState.isValid ||
+    formSubscription.items?.length === 0 ||
+    formSubscription.items?.some((i) => i.resource?.name === "") ||
+    formState.touchedFields.items?.some(
+      (i) => i && Object.keys(i).length !== 4
+    );
 
   return (
     <>
@@ -232,93 +311,83 @@ export default function NewDailyClosing({
         </div>
       </dialog>
 
-      <div className="bottom-[4rem] fixed lg:sticky lg:top-24 w-full z-10 lg:left-8 mx-auto lg:mx-0 p-6 shadow-xl [--tw-shadow:0_100px_10px_100px_rgb(0_0_0_/_0.25)] lg:w-max max-w-full flex flex-col items-center bg-base-100 rounded-md">
-        <div className="flex gap-6 lg:flex-col">
-          <div className="w-max h-max flex gap-3 items-center ">
-            {saveStatus === "saved" ? (
-              <>
-                <div className="text-success flex gap-2 items-center">
-                  <CheckIcon style={{ height: "2rem", width: "2rem" }} />
-                  <p>Průběžně uloženo</p>
-                </div>
-              </>
-            ) : saveStatus === "saving" ? (
-              <>
-                <span className="loading loading-bars loading-md" />
-                Ukládám
-              </>
-            ) : (
-              <>
-                <button
-                  className="btn btn-outline animate-[wiggle_5s_ease-in-out_infinite] --[animation-delay:2s]"
-                  onClick={() => setSaveStatus("saving")}
-                  disabled={
-                    !formState.isValid ||
-                    formSubscription.items?.length === 0 ||
-                    formSubscription.items?.some(
-                      (i) => i.resource?.name === ""
-                    ) ||
-                    formState.touchedFields.items?.some(
-                      (i) => i && Object.keys(i).length !== 4
-                    )
-                  }
-                >
-                  <span className="absolute flex h-5 w-5 -right-1 -top-1">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-warning opacity-75" />
-                    <span className="relative inline-flex rounded-full h-5 w-5 bg-yellow-500" />
-                  </span>
-                  <SaveIcon style={{ height: "2rem", width: "2rem" }} />
-                  Průběžně uložit
-                </button>
-              </>
-            )}
-          </div>
-          <div className="divider my-2" />
-          <div className="flex flex-col items-center rounded-lg">
-            <p className="font-semibold opacity-70">Zodpovědná osoba</p>
-            <p className="font-bold text-2xl mt-1">
-              {initData.day.seller.name}
-            </p>
-          </div>
-        </div>
-        <div className="divider my-0 lg:my-2" />
-        {showStats && (
-          <div className="stats lg:flex lg:flex-col max-w-full [&_svg]:hidden lg:[&_svg]:block [&_p]:!text-2xl [&_p]:lg:!text-4xl [&>div]:[column-gap:0]">
-            <div className="stat">
-              <div className="stat-figure text-primary">
-                <CartIcon />
-              </div>
-              <div className="stat-title">Cena celkem</div>
-              <p className="stat-value  text-primary">{currPrice} CZK</p>
-            </div>
-
-            <div className="stat">
-              <div className="stat-figure text-secondary">
-                <PaymentIcon />
-              </div>
-              <div className="stat-title">Příjem</div>
-              <p className="stat-value text-secondary">{currIncome} CZK</p>
-            </div>
-
-            <div className="stat">
-              <div className="stat-figure text-accent">
-                <StoreIcon />
-              </div>
-              <div className="stat-title">Bilance</div>
-              <p className="stat-value text-accent">
-                {getValues("cardIncome") + getValues("cashIncome") - currPrice}{" "}
-                CZK
-              </p>
-            </div>
-          </div>
+      <div
+        className={classNames(
+          "bottom-[4rem] fixed lg:sticky lg:top-24 w-screen z-10 lg:left-8 mx-auto lg:mx-0 p-4 shadow-xl [--tw-shadow:0_100px_10px_100px_rgb(0_0_0_/_0.25)] lg:w-max flex flex-col items-center bg-base-100 rounded-md",
+          { "!bg-transparent !items-end !shadow-none": !showStats }
         )}
-        <button className="btn" onClick={() => setShowStats((v) => !v)}>
-          {showStats ? "Skrýt statistiky" : "Zobrazit statistiky"}
+      >
+        {showStats && (
+          <>
+            <div className="flex lg:flex-col items-center">
+              <div className="w-max h-max flex gap-3 items-center">
+                {saveStateRender()}
+              </div>
+              <div className="divider divider-horizontal mx-1 lg:divider-vertical my-2" />
+              <div className="flex flex-col items-center rounded-lg">
+                <p className="font-semibold opacity-70 text-xs text-center">
+                  Zodpovědná osoba
+                </p>
+                <p className="font-bold text-2xl mt-1">
+                  {initData.day.seller.name}
+                </p>
+              </div>
+            </div>
+            <div className="divider my-0 lg:my-2" />
+            <div className="stats lg:flex lg:flex-col max-w-full [&_svg]:hidden lg:[&_svg]:block [&_p]:!text-xl [&_p]:lg:!text-4xl [&>div]:[column-gap:0]  [&>div]:p-5 [&>div>div]:!text-sm">
+              <div className="stat">
+                <div className="stat-figure text-primary">
+                  <CartIcon />
+                </div>
+                <div className="stat-title">
+                  Cena
+                  <br />
+                  celkem
+                </div>
+                <p className="stat-value  text-primary">{currPrice} CZK</p>
+              </div>
+
+              <div className="stat">
+                <div className="stat-figure text-secondary">
+                  <PaymentIcon />
+                </div>
+                <div className="stat-title">Příjem</div>
+                <p className="stat-value text-secondary">{currIncome} CZK</p>
+              </div>
+
+              <div className="stat">
+                <div className="stat-figure text-accent">
+                  <StoreIcon />
+                </div>
+                <div className="stat-title">Bilance</div>
+                <p className="stat-value text-accent">
+                  {getValues("cardIncome") +
+                    getValues("cashIncome") -
+                    currPrice}{" "}
+                  CZK
+                </p>
+              </div>
+            </div>
+          </>
+        )}
+        <button
+          className="btn relative"
+          onClick={() => setShowStats((v) => !v)}
+        >
+          {savingState.state === "unsaved" && !showStats && (
+            <span className="absolute flex h-5 w-5 -right-1 -top-1">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-warning opacity-75" />
+              <span className="relative inline-flex rounded-full h-5 w-5 bg-yellow-500" />
+            </span>
+          )}
+
+          {showStats ? "Skrýt nástroje" : "Zobrazit nástroje"}
+          <ToolIcon style={{ height: "70%" }} />
         </button>
       </div>
 
-      <div className="flex flex-col items-center justify-center mb-96 mt-8 w-full">
-        <h1 className="font-bold text-3xl shadow-md p-6 rounded-lg">
+      <div className="flex flex-col items-center justify-center mb-44 mt-8 w-screen">
+        <h1 className="font-bold text-3xl shadow-md p-6 rounded-lg mx-2">
           Uzávěrka pro den{" "}
           <span className="text-green-700">
             {initData.day.date.toLocaleDateString()}
@@ -536,8 +605,8 @@ export default function NewDailyClosing({
               <AddIcon style={{ width: "2rem", height: "2rem" }} />
               Přidat položku
             </button>
-            <div className="divider w-[35rem] self-center my-1" />
-            <div className="flex gap-4">
+            <div className="divider w-10/12 self-center my-1" />
+            <div className="flex flex-col lg:flex-row gap-4">
               <label className="form-control w-full max-w-xs">
                 <div className="label">
                   <span className="label-text flex">Příjem kartou</span>
@@ -552,7 +621,9 @@ export default function NewDailyClosing({
                   min={0}
                   className={
                     "input input-bordered" +
-                    classNames({ " !input-error": formState.errors.cardIncome })
+                    classNames({
+                      " !input-error": formState.errors.cardIncome,
+                    })
                   }
                   {...register("cardIncome", { valueAsNumber: true })}
                 />
@@ -575,7 +646,9 @@ export default function NewDailyClosing({
                   min={0}
                   className={
                     "input input-bordered" +
-                    classNames({ " !input-error": formState.errors.cashIncome })
+                    classNames({
+                      " !input-error": formState.errors.cashIncome,
+                    })
                   }
                   {...register("cashIncome", { valueAsNumber: true })}
                 />
@@ -593,7 +666,7 @@ export default function NewDailyClosing({
               <button
                 type="button"
                 className="btn btn-outline w-2/3"
-                disabled={formState.isSubmitting}
+                disabled={formState.isSubmitting || shouldDisableSave}
                 onClick={() => saveDayRef.current?.showModal()}
               >
                 Uzavřít den
@@ -607,4 +680,4 @@ export default function NewDailyClosing({
       </div>
     </>
   );
-}
+};

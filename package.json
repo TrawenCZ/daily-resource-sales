@@ -19,6 +19,7 @@
     "classnames": "^2.5.1",
     "next": "14.2.4",
     "next-auth": "^4.24.7",
+    "object-hash": "^3.0.0",
     "pbkdf2": "^3.1.2",
     "prisma": "^5.16.1",
     "react": "^18",
@@ -30,6 +31,7 @@
   "devDependencies": {
     "@svgr/webpack": "^8.1.0",
     "@types/node": "^20",
+    "@types/object-hash": "^3.0.6",
     "@types/pbkdf2": "^3.1.2",
     "@types/react": "^18",
     "@types/react-dom": "^18",

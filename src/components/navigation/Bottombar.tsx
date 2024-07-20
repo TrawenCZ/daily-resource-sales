@@ -73,26 +73,25 @@ export default function Bottombar() {
           </ul>
         </div>
       </div>
-      <div>
-        <div className="btm-nav lg:hidden [&>a]:py-1 shadow-2xl [--tw-shadow:0_100px_10px_100px_rgb(0_0_0_/_0.25)] z-20">
-          <Link href="/" className={classNames({ active: route === "/" })}>
-            <HomeIcon />
-            <span>Domů</span>
-          </Link>
 
-          <Link
-            href="/new-daily"
-            className={classNames({ active: route === "/new-daily" })}
-          >
-            <AddIcon />
-            Nová uzávěrka
-          </Link>
+      <div className="btm-nav lg:hidden [&>a]:py-1 shadow-2xl [--tw-shadow:0_100px_10px_100px_rgb(0_0_0_/_0.25)] z-20">
+        <Link href="/" className={classNames({ active: route === "/" })}>
+          <HomeIcon />
+          <span>Domů</span>
+        </Link>
 
-          <label htmlFor="my-drawer-4" className="">
-            <MenuIcon />
-            Více
-          </label>
-        </div>
+        <Link
+          href="/new-daily"
+          className={classNames({ active: route === "/new-daily" })}
+        >
+          <AddIcon />
+          Nová uzávěrka
+        </Link>
+
+        <label htmlFor="my-drawer-4" className="">
+          <MenuIcon />
+          Více
+        </label>
       </div>
     </>
   );
